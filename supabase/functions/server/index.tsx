@@ -1,0 +1,736 @@
+import { Hono } from "npm:hono";
+import { cors } from "npm:hono/cors";
+import { logger } from "npm:hono/logger";
+import { createClient } from "jsr:@supabase/supabase-js@2.49.8";
+import * as kv from "./kv_store.tsx";
+import Stripe from "npm:stripe@17.7.0";
+import {
+  encryptedSet,
+  encryptedGet,
+  encryptedGetByPrefix,
+} from "./encryption.tsx";
+
+const app = new Hono();
+
+app.use("*", logger(console.log));
+
+app.use(
+  "/*",
+  cors({
+    origin: "*",
+    allowHeaders: ["Content-Type", "Authorization"],
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    exposeHeaders: ["Content-Length"],
+    maxAge: 600,
+  }),
+);
+
+// ── CJIS 5.10.4: Security Headers Middleware ──
+app.use("*", async (c, next) => {
+  await next();
+  c.header("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+  c.header("X-Content-Type-Options", "nosniff");
+  c.header("X-Frame-Options", "DENY");
+  c.header("X-XSS-Protection", "1; mode=block");
+  c.header("Referrer-Policy", "strict-origin-when-cross-origin");
+  c.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+});
+
+// ── CJIS 5.4.1.1: Audit Logging Utility ──
+async function auditLog(
+  eventType: string,
+  userId: string,
+  outcome: "success" | "failure" | "denied",
+  details?: string,
+  c?: any,
+) {
+  try {
+    const ts = Date.now();
+    const entry = {
+      id: `${ts}-${Math.random().toString(36).slice(2, 8)}`,
+      timestamp: new Date(ts).toISOString(),
+      eventType,
+      userId,
+      outcome,
+      details: details || "",
+      ipAddress: c?.req?.header("x-forwarded-for") || c?.req?.header("cf-connecting-ip") || "unknown",
+      userAgent: c?.req?.header("user-agent")?.slice(0, 120) || "unknown",
+    };
+    // Store audit log with encryption
+    await encryptedSet(kv.set, `audit:${userId}:${ts}`, entry);
+    // Also store in global audit prefix for admin queries
+    await kv.set(`audit_idx:${ts}`, { userId, eventType, outcome, timestamp: entry.timestamp });
+  } catch (e) {
+    console.log("Audit log write error (non-blocking):", e);
+  }
+}
+
+// ---------- Auth helpers ----------
+
+function supabaseAdmin() {
+  return createClient(
+    Deno.env.get("SUPABASE_URL"),
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),
+  );
+}
+
+async function getUserId(c: any): Promise<string | null> {
+  const token = c.req.header("Authorization")?.split(" ")[1];
+  if (!token) return null;
+  const supabase = supabaseAdmin();
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data?.user?.id) return null;
+  return data.user.id;
+}
+
+// ---------- Health ----------
+
+app.get("/make-server-39a35780/health", (c) => {
+  return c.json({ status: "ok" });
+});
+
+// ---------- Auth: Sign Up ----------
+
+app.post("/make-server-39a35780/signup", async (c) => {
+  try {
+    const { email, password, name } = await c.req.json();
+    if (!email || !password || !name) {
+      return c.json({ error: "Missing email, password, or name" }, 400);
+    }
+    const supabase = supabaseAdmin();
+    const { data, error } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      user_metadata: { name },
+      // Automatically confirm the user's email since an email server hasn't been configured.
+      email_confirm: true,
+    });
+    if (error) {
+      console.log("Signup error:", error.message);
+      return c.json({ error: `Signup failed: ${error.message}` }, 400);
+    }
+    // Audit: successful signup
+    await auditLog("auth:signup", data.user.id, "success", `New user created: ${email}`, c);
+    return c.json({ user: { id: data.user.id, email: data.user.email } });
+  } catch (e) {
+    console.log("Signup exception:", e);
+    return c.json({ error: `Signup exception: ${e}` }, 500);
+  }
+});
+
+// ---------- Profile ----------
+
+app.get("/make-server-39a35780/profile", async (c) => {
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized: profile fetch" }, 401);
+  try {
+    const profile = await encryptedGet(kv.get, `user:${userId}:profile`);
+    await auditLog("data:profile_read", userId, "success", "Profile fetched", c);
+    return c.json({ profile: profile || null });
+  } catch (e) {
+    console.log("Profile get error:", e);
+    return c.json({ error: `Profile fetch error: ${e}` }, 500);
+  }
+});
+
+app.put("/make-server-39a35780/profile", async (c) => {
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized: profile update" }, 401);
+  try {
+    const body = await c.req.json();
+    const existing = await encryptedGet<any>(kv.get, `user:${userId}:profile`);
+    const profile = {
+      ...(existing || {}),
+      ...body,
+      userId,
+      updatedAt: new Date().toISOString(),
+    };
+    if (!existing) {
+      profile.joinedAt = new Date().toISOString();
+    }
+    await encryptedSet(kv.set, `user:${userId}:profile`, profile);
+    await auditLog("data:profile_update", userId, "success", "Profile updated", c);
+    return c.json({ profile });
+  } catch (e) {
+    console.log("Profile update error:", e);
+    return c.json({ error: `Profile update error: ${e}` }, 500);
+  }
+});
+
+// ---------- Progress ----------
+
+app.get("/make-server-39a35780/progress", async (c) => {
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized: progress fetch" }, 401);
+  try {
+    const results = await encryptedGetByPrefix(kv.getByPrefix, `user:${userId}:progress:`);
+    return c.json({ progress: results || [] });
+  } catch (e) {
+    console.log("Progress fetch error:", e);
+    return c.json({ error: `Progress fetch error: ${e}` }, 500);
+  }
+});
+
+app.put("/make-server-39a35780/progress/:moduleId", async (c) => {
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized: progress update" }, 401);
+  const moduleId = c.req.param("moduleId");
+  try {
+    const body = await c.req.json();
+    const key = `user:${userId}:progress:${moduleId}`;
+    const existing = await kv.get(key);
+    const progress = {
+      moduleId: Number(moduleId),
+      preAssessmentScore: null,
+      postAssessmentScore: null,
+      sectionsCompleted: [],
+      scenariosCompleted: [],
+      timeSpent: 0,
+      status: "not_started",
+      completedDate: null,
+      ...(existing || {}),
+      ...body,
+      updatedAt: new Date().toISOString(),
+    };
+    await kv.set(key, progress);
+    return c.json({ progress });
+  } catch (e) {
+    console.log("Progress update error:", e);
+    return c.json({ error: `Progress update error: ${e}` }, 500);
+  }
+});
+
+// ---------- Vignettes Watched ----------
+
+app.get("/make-server-39a35780/vignettes", async (c) => {
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized: vignettes fetch" }, 401);
+  try {
+    const data = await kv.get(`user:${userId}:vignettes`);
+    return c.json({ watched: data?.watched || [] });
+  } catch (e) {
+    console.log("Vignettes fetch error:", e);
+    return c.json({ error: `Vignettes fetch error: ${e}` }, 500);
+  }
+});
+
+app.put("/make-server-39a35780/vignettes", async (c) => {
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized: vignettes update" }, 401);
+  try {
+    const body = await c.req.json();
+    await kv.set(`user:${userId}:vignettes`, { watched: body.watched || [] });
+    return c.json({ success: true });
+  } catch (e) {
+    console.log("Vignettes update error:", e);
+    return c.json({ error: `Vignettes update error: ${e}` }, 500);
+  }
+});
+
+// ---------- Simulations ----------
+
+app.post("/make-server-39a35780/simulations", async (c) => {
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized: simulation save" }, 401);
+  try {
+    const body = await c.req.json();
+    const ts = Date.now();
+    const key = `user:${userId}:simulation:${body.moduleId}:${ts}`;
+    const record = {
+      ...body,
+      userId,
+      completedAt: new Date().toISOString(),
+    };
+    await kv.set(key, record);
+    return c.json({ simulation: record });
+  } catch (e) {
+    console.log("Simulation save error:", e);
+    return c.json({ error: `Simulation save error: ${e}` }, 500);
+  }
+});
+
+app.get("/make-server-39a35780/simulations", async (c) => {
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized: simulations fetch" }, 401);
+  try {
+    const results = await kv.getByPrefix(`user:${userId}:simulation:`);
+    return c.json({ simulations: results || [] });
+  } catch (e) {
+    console.log("Simulations fetch error:", e);
+    return c.json({ error: `Simulations fetch error: ${e}` }, 500);
+  }
+});
+
+// ---------- Stripe / Licensing ----------
+
+const LICENSE_PLANS = [
+  {
+    id: "org_seat",
+    name: "Organizational Seat License",
+    description: "Per-seat annual license for a defined number of users within one organization",
+    unitLabel: "seat",
+    priceRange: "$150–$250/seat/year",
+    defaultPrice: 20000, // $200.00 in cents
+    minSeats: 1,
+    maxSeats: 500,
+    allowQuantity: true,
+  },
+  {
+    id: "department",
+    name: "Department / Agency License",
+    description: "Flat annual fee for unlimited users within a single agency or court",
+    unitLabel: "agency",
+    priceRange: "$3,500–$8,500/year",
+    defaultPrice: 500000, // $5,000.00 in cents
+    allowQuantity: false,
+  },
+  {
+    id: "judicial_circuit",
+    name: "Judicial Circuit License",
+    description: "Covers all professionals within a defined Georgia judicial circuit",
+    unitLabel: "circuit",
+    priceRange: "$8,000–$15,000/year",
+    defaultPrice: 1200000, // $12,000.00 in cents
+    allowQuantity: false,
+  },
+  {
+    id: "statewide",
+    name: "Statewide Agency License",
+    description: "Single contract covering all regional offices of a state agency (DFCS, etc.)",
+    unitLabel: "agency",
+    priceRange: "$25,000–$60,000/year",
+    defaultPrice: 4000000, // $40,000.00 in cents
+    allowQuantity: false,
+  },
+];
+
+function getStripe() {
+  const key = Deno.env.get("STRIPE_SECRET_KEY");
+  if (!key) throw new Error("STRIPE_SECRET_KEY is not configured");
+  return new Stripe(key, { apiVersion: "2024-12-18.acacia" });
+}
+
+app.get("/make-server-39a35780/licensing/plans", (c) => {
+  return c.json({ plans: LICENSE_PLANS });
+});
+
+app.get("/make-server-39a35780/licensing/status", async (c) => {
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized: license status" }, 401);
+  try {
+    const license = await kv.get(`user:${userId}:license`);
+    return c.json({ license: license || null });
+  } catch (e) {
+    console.log("License status error:", e);
+    return c.json({ error: `License status error: ${e}` }, 500);
+  }
+});
+
+app.post("/make-server-39a35780/licensing/checkout", async (c) => {
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized: checkout" }, 401);
+  try {
+    const { planId, quantity, orgName, successUrl, cancelUrl } = await c.req.json();
+    const plan = LICENSE_PLANS.find((p) => p.id === planId);
+    if (!plan) return c.json({ error: "Invalid plan selected" }, 400);
+
+    const stripe = getStripe();
+    const qty = plan.allowQuantity ? Math.max(1, Math.min(quantity || 1, plan.maxSeats || 500)) : 1;
+
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: plan.name,
+              description: plan.description,
+            },
+            unit_amount: plan.defaultPrice,
+          },
+          quantity: qty,
+        },
+      ],
+      metadata: {
+        userId,
+        planId: plan.id,
+        planName: plan.name,
+        quantity: String(qty),
+        orgName: orgName || "",
+      },
+      success_url: successUrl || "https://example.com/licensing/success?session_id={CHECKOUT_SESSION_ID}",
+      cancel_url: cancelUrl || "https://example.com/licensing?canceled=true",
+    });
+
+    return c.json({ sessionId: session.id, url: session.url });
+  } catch (e) {
+    console.log("Checkout session error:", e);
+    return c.json({ error: `Checkout session creation failed: ${e}` }, 500);
+  }
+});
+
+app.post("/make-server-39a35780/licensing/confirm", async (c) => {
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized: confirm" }, 401);
+  try {
+    const { sessionId } = await c.req.json();
+    if (!sessionId) return c.json({ error: "Missing sessionId" }, 400);
+
+    const stripe = getStripe();
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    if (session.payment_status !== "paid") {
+      return c.json({ error: "Payment not completed" }, 400);
+    }
+
+    const meta = session.metadata || {};
+    if (meta.userId !== userId) {
+      return c.json({ error: "Session does not belong to this user" }, 403);
+    }
+
+    const plan = LICENSE_PLANS.find((p) => p.id === meta.planId);
+    const license = {
+      planId: meta.planId,
+      planName: meta.planName || plan?.name,
+      quantity: Number(meta.quantity) || 1,
+      orgName: meta.orgName || "",
+      amountPaid: session.amount_total,
+      currency: session.currency,
+      stripeSessionId: session.id,
+      stripePaymentIntent: session.payment_intent,
+      status: "active",
+      purchasedAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+
+    await kv.set(`user:${userId}:license`, license);
+    // Also store in an org-level key for admin lookups
+    await kv.set(`license:${session.id}`, { ...license, userId });
+
+    return c.json({ license });
+  } catch (e) {
+    console.log("License confirm error:", e);
+    return c.json({ error: `License confirmation failed: ${e}` }, 500);
+  }
+});
+
+// ---------- Admin Stats (aggregate all users) ----------
+
+app.get("/make-server-39a35780/admin/stats", async (c) => {
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized: admin stats" }, 401);
+  try {
+    // Audit: admin dashboard access
+    await auditLog("admin:dashboard_access", userId, "success", "Admin stats requested", c);
+    // Get all user profiles to count learners
+    const profiles = await kv.getByPrefix("user:");
+    // Filter to only profile keys
+    const userProfiles = profiles.filter((p: any) => p?.userId && p?.role);
+    const totalLearners = userProfiles.length;
+
+    // Get all progress records
+    const allProgress = profiles.filter((p: any) => p?.moduleId !== undefined && p?.status);
+
+    const completedCount = allProgress.filter((p: any) => p.status === "completed").length;
+    const activeLearners = new Set(allProgress.filter((p: any) => p.status === "in_progress").map((p: any) => p.userId)).size;
+
+    // Score distribution
+    const scores = allProgress
+      .filter((p: any) => p.postAssessmentScore !== null && p.postAssessmentScore !== undefined)
+      .map((p: any) => p.postAssessmentScore);
+    const avgScore = scores.length > 0 ? Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length) : 0;
+
+    const completionRate = totalLearners > 0 ? Math.round((completedCount / (totalLearners * 7)) * 100) : 0;
+
+    // Module completion breakdown
+    const moduleCompletion = [1, 2, 3, 4, 5, 6, 7].map((mod) => {
+      const modProgress = allProgress.filter((p: any) => p.moduleId === mod);
+      return {
+        module: `Module ${mod}`,
+        completed: modProgress.filter((p: any) => p.status === "completed").length,
+        inProgress: modProgress.filter((p: any) => p.status === "in_progress").length,
+        notStarted: Math.max(0, totalLearners - modProgress.length),
+      };
+    });
+
+    // Score distribution buckets
+    const scoreDistribution = [
+      { range: "90-100%", count: scores.filter((s: number) => s >= 90).length },
+      { range: "80-89%", count: scores.filter((s: number) => s >= 80 && s < 90).length },
+      { range: "70-79%", count: scores.filter((s: number) => s >= 70 && s < 80).length },
+      { range: "60-69%", count: scores.filter((s: number) => s >= 60 && s < 70).length },
+      { range: "Below 60%", count: scores.filter((s: number) => s < 60).length },
+    ];
+
+    // Role breakdown
+    const roleCounts: Record<string, number> = {};
+    userProfiles.forEach((p: any) => {
+      roleCounts[p.role] = (roleCounts[p.role] || 0) + 1;
+    });
+    const agencyBreakdown = Object.entries(roleCounts).map(([role, count]) => ({
+      name: role,
+      learners: count,
+      completion: 0,
+    }));
+
+    return c.json({
+      stats: {
+        totalLearners,
+        activeLearners,
+        completionRate,
+        avgScore,
+        moduleCompletion,
+        scoreDistribution,
+        agencyBreakdown,
+      },
+    });
+  } catch (e) {
+    console.log("Admin stats error:", e);
+    return c.json({ error: `Admin stats error: ${e}` }, 500);
+  }
+});
+
+// ---------- Admin: User Management ----------
+
+app.get("/make-server-39a35780/admin/users", async (c) => {
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized: admin users list" }, 401);
+  try {
+    // Verify the requesting user is admin/superadmin
+    const requesterProfile = await encryptedGet<any>(kv.get, `user:${userId}:profile`);
+    const requesterRole = requesterProfile?.role || "learner";
+    const adminRoles = ["admin", "superadmin"];
+    if (!adminRoles.includes(requesterRole)) {
+      await auditLog("security:permission_denied", userId, "denied", "Attempted admin users list without permission", c);
+      return c.json({ error: "Forbidden: insufficient privileges for user management" }, 403);
+    }
+
+    await auditLog("admin:user_view", userId, "success", "Admin user list requested", c);
+
+    // Fetch all user profiles via KV prefix scan
+    const allData = await kv.getByPrefix("user:");
+    const profiles = allData.filter((entry: any) => entry?.userId && entry?.role);
+
+    // Enrich with progress summary
+    const users = profiles.map((p: any) => {
+      const progressEntries = allData.filter(
+        (d: any) => d?.moduleId !== undefined && d?.status && d?.userId === p.userId
+      );
+      const completedModules = progressEntries.filter((d: any) => d.status === "completed").length;
+      const inProgressModules = progressEntries.filter((d: any) => d.status === "in_progress").length;
+      return {
+        userId: p.userId,
+        name: p.name || "Unknown",
+        email: p.email || "",
+        role: p.role || "learner",
+        agency: p.agency || "",
+        state: p.state || "",
+        joinedAt: p.joinedAt || p.createdAt || null,
+        updatedAt: p.updatedAt || null,
+        completedModules,
+        inProgressModules,
+      };
+    });
+
+    return c.json({ users });
+  } catch (e) {
+    console.log("Admin users list error:", e);
+    return c.json({ error: `Admin users list error: ${e}` }, 500);
+  }
+});
+
+app.put("/make-server-39a35780/admin/users/:targetUserId/role", async (c) => {
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized: role change" }, 401);
+  const targetUserId = c.req.param("targetUserId");
+  try {
+    // Verify the requesting user is admin/superadmin
+    const requesterProfile = await encryptedGet<any>(kv.get, `user:${userId}:profile`);
+    const requesterRole = requesterProfile?.role || "learner";
+
+    // Only superadmin can promote to admin/superadmin
+    // admin can promote to supervisor or demote to learner roles
+    const validRoles = [
+      "law_enforcement", "cpi", "prosecutor", "judge", "medical",
+      "school", "advocate", "forensic", "mandated_reporter",
+      "supervisor", "admin", "superadmin",
+    ];
+
+    const { newRole } = await c.req.json();
+    if (!newRole || !validRoles.includes(newRole)) {
+      return c.json({ error: `Invalid role: ${newRole}` }, 400);
+    }
+
+    const elevatedRoles = ["admin", "superadmin"];
+    if (elevatedRoles.includes(newRole) && requesterRole !== "superadmin") {
+      await auditLog("security:permission_denied", userId, "denied", `Attempted to assign ${newRole} without superadmin privileges`, c);
+      return c.json({ error: "Only superadmin can assign admin/superadmin roles" }, 403);
+    }
+
+    if (requesterRole !== "admin" && requesterRole !== "superadmin") {
+      await auditLog("security:permission_denied", userId, "denied", "Attempted role change without admin privileges", c);
+      return c.json({ error: "Forbidden: insufficient privileges for role management" }, 403);
+    }
+
+    // Prevent self-demotion from superadmin (safety)
+    if (userId === targetUserId && requesterRole === "superadmin" && newRole !== "superadmin") {
+      return c.json({ error: "Cannot demote your own superadmin role. Another superadmin must do this." }, 400);
+    }
+
+    // Update the target user's profile
+    const targetProfile = await encryptedGet<any>(kv.get, `user:${targetUserId}:profile`);
+    if (!targetProfile) {
+      return c.json({ error: "Target user not found" }, 404);
+    }
+
+    const previousRole = targetProfile.role || "learner";
+    const updatedProfile = {
+      ...targetProfile,
+      role: newRole,
+      updatedAt: new Date().toISOString(),
+      roleChangedBy: userId,
+      roleChangedAt: new Date().toISOString(),
+      previousRole,
+    };
+
+    await encryptedSet(kv.set, `user:${targetUserId}:profile`, updatedProfile);
+    await auditLog(
+      "security:role_change",
+      userId,
+      "success",
+      `Changed user ${targetUserId} role from ${previousRole} to ${newRole}`,
+      c
+    );
+
+    return c.json({ profile: updatedProfile });
+  } catch (e) {
+    console.log("Role change error:", e);
+    return c.json({ error: `Role change error: ${e}` }, 500);
+  }
+});
+
+// ---------- Admin: Audit Logs ----------
+
+app.get("/make-server-39a35780/admin/audit", async (c) => {
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized: audit log access" }, 401);
+  try {
+    // Only superadmin can view audit logs
+    const requesterProfile = await encryptedGet<any>(kv.get, `user:${userId}:profile`);
+    const requesterRole = requesterProfile?.role || "learner";
+    if (requesterRole !== "superadmin") {
+      await auditLog("security:permission_denied", userId, "denied", "Attempted audit log access without superadmin", c);
+      return c.json({ error: "Forbidden: only superadmin can access audit logs" }, 403);
+    }
+
+    await auditLog("admin:audit_view", userId, "success", "Audit log viewed", c);
+
+    // Get audit index entries (lightweight, not encrypted)
+    const auditEntries = await kv.getByPrefix("audit_idx:");
+    // Sort by timestamp descending and limit to most recent 500
+    const sorted = (auditEntries || [])
+      .filter((e: any) => e && e.timestamp)
+      .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 500);
+
+    return c.json({ entries: sorted });
+  } catch (e) {
+    console.log("Audit log fetch error:", e);
+    return c.json({ error: `Audit log fetch error: ${e}` }, 500);
+  }
+});
+
+// ---------- Rooty Chatbot (Gemini LLM) ----------
+
+const ROOTY_SYSTEM_PROMPT = `You are Rooty, a warm, knowledgeable, and professional AI assistant for the RootWork Framework™ Trauma-Informed Investigation Training Platform. You ONLY answer questions about this platform, its content, and closely related topics. If a user asks about something unrelated, politely redirect them.
+
+VOICE & TONE:
+- Warm but professional. You care deeply about child welfare.
+- Concise: aim for 2-5 sentences unless the user asks for detail.
+- Use specific section names, statute citations, and module numbers when relevant.
+- Never invent statistics or legal details not listed below.
+
+PLATFORM OVERVIEW:
+- 9 professional roles: Law Enforcement, Child Protective Investigator (CPI), Prosecutor, Judge, Medical Professional, School Personnel, Victim Advocate, Forensic Interviewer, Mandated Reporter.
+- 7 training modules (~28 hours total). Modules 1-6 are core investigator modules. Module 7 is a bonus Mandated Reporter Essentials module.
+- Pedagogical framework: RootWork 5Rs (Root → Regulate → Reflect → Restore → Reconnect) — a sequential cycle that structures every module.
+- Cognitive model: TRACE (Trigger → Response → Appraisal → Choice → Effect) — maps the professional's internal cognitive pathway during encounters.
+- Features: role-based customized paths, scenario-based branching simulations, video vignettes, pre/post assessments with citations, CE credit certificates, admin analytics dashboard.
+- 4 license tiers: Individual ($150-250/seat), Team/Department ($3,500-8,500), Judicial Circuit ($8,000-15,000), Statewide ($25,000-60,000).
+- 4 design principles: Cognitive Load Awareness, Role-Differentiated Paths, Scaffolded Complexity, Reflective Practice.
+
+IMPORTANT RULES:
+- You are NOT a lawyer. Always recommend consulting local statutes and agency counsel for legal advice.
+- Never minimize the seriousness of child abuse or reporting obligations.
+- If someone describes a situation that sounds like it involves actual child abuse, remind them that if they are a mandated reporter, they should call 1-855-GACHILD (in Georgia) or their state's child abuse hotline immediately.
+- You may discuss the platform's pedagogy, structure, pricing, and content in detail.
+- You may explain the 5Rs, TRACE, mandated reporting law, and module content.
+- Do NOT make up information about features that don't exist on the platform.`;
+
+app.post("/make-server-39a35780/rooty/chat", async (c) => {
+  try {
+    const { messages } = await c.req.json();
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return c.json({ error: "Missing or invalid messages array" }, 400);
+    }
+
+    const apiKey = Deno.env.get("GEMINI_API_KEY");
+    if (!apiKey) {
+      console.log("GEMINI_API_KEY not configured — falling back");
+      return c.json({ error: "Gemini API key not configured" }, 500);
+    }
+
+    // Build Gemini API request
+    const geminiMessages = messages.map((m: any) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.text }],
+    }));
+
+    const body = {
+      system_instruction: {
+        parts: [{ text: ROOTY_SYSTEM_PROMPT }],
+      },
+      contents: geminiMessages,
+      generationConfig: {
+        temperature: 0.7,
+        topP: 0.9,
+        topK: 40,
+        maxOutputTokens: 600,
+      },
+      safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_ONLY_HIGH" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_ONLY_HIGH" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_ONLY_HIGH" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_ONLY_HIGH" },
+      ],
+    };
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (!resp.ok) {
+      const errText = await resp.text();
+      console.log("Gemini API error:", resp.status, errText);
+      return c.json({ error: `Gemini API error (${resp.status}): ${errText}` }, 502);
+    }
+
+    const data = await resp.json();
+    const reply =
+      data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "I'm sorry, I wasn't able to generate a response. Could you try rephrasing your question?";
+
+    return c.json({ reply });
+  } catch (e) {
+    console.log("Rooty chat error:", e);
+    return c.json({ error: `Rooty chat error: ${e}` }, 500);
+  }
+});
+
+Deno.serve(app.fetch);
