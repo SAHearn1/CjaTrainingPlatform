@@ -17,14 +17,16 @@ export function useTTS(options: TTSOptions = {}) {
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   useEffect(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+
     const loadVoices = () => {
       const available = window.speechSynthesis.getVoices();
       setVoices(available);
       if (!selectedVoice && available.length > 0) {
         const english = available.find(
-          (v) => v.lang.startsWith("en") && v.name.includes("Google")
-        ) || available.find((v) => v.lang.startsWith("en")) || available[0];
-        setSelectedVoice(english);
+          (v) => v.lang?.startsWith("en") && v.name?.includes("Google")
+        ) || available.find((v) => v.lang?.startsWith("en")) || available[0];
+        if (english) setSelectedVoice(english);
       }
     };
 
@@ -38,6 +40,7 @@ export function useTTS(options: TTSOptions = {}) {
 
   const speak = useCallback(
     (text: string) => {
+      if (!window.speechSynthesis || !text) return;
       window.speechSynthesis.cancel();
 
       const utterance = new SpeechSynthesisUtterance(text);

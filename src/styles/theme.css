@@ -208,14 +208,14 @@
 
   h4 {
     font-family: var(--font-display);
-    font-size: var(--text-base);
+    font-size: var(--font-size);
     font-weight: 700;
     line-height: 1.4;
     color: var(--evergreen);
   }
 
   label {
-    font-size: var(--text-base);
+    font-size: var(--font-size);
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
   }
