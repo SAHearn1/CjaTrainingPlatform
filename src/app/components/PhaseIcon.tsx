@@ -58,40 +58,52 @@ interface PhaseIconProps {
   className?: string;
   /** Extra inline styles */
   style?: React.CSSProperties;
+  /** Wrap icon in a circular background */
+  withBg?: boolean;
+  /** Background color override (CSS color string) */
+  bgColor?: string;
 }
 
 /**
  * Renders the brand icon for a given 5Rs phase.
  * Falls back to emoji if no asset is mapped.
  */
-export function PhaseIcon({ phase, size = 32, className = "", style }: PhaseIconProps) {
+export function PhaseIcon({ phase, size = 32, className = "", style, withBg, bgColor }: PhaseIconProps) {
   const asset = PHASE_ASSET[phase];
 
-  if (asset) {
-    return (
-      <img
-        src={asset}
-        alt={`${phase} phase icon`}
-        width={size}
-        height={size}
-        className={`object-contain ${className}`}
-        style={{ width: size, height: size, ...style }}
-      />
-    );
-  }
-
-  // Emoji fallback
-  const emoji = PHASE_EMOJI[phase] || "🌱";
-  return (
+  const inner = asset ? (
+    <img
+      src={asset}
+      alt={`${phase} phase icon`}
+      width={size}
+      height={size}
+      className={`object-contain ${withBg ? "" : className}`}
+      style={{ width: size, height: size, ...(withBg ? {} : style) }}
+    />
+  ) : (
     <span
-      className={className}
-      style={{ fontSize: size * 0.7, lineHeight: `${size}px`, display: "inline-block", width: size, height: size, textAlign: "center", ...style }}
+      className={withBg ? "" : className}
+      style={{ fontSize: size * 0.7, lineHeight: `${size}px`, display: "inline-block", width: size, height: size, textAlign: "center", ...(withBg ? {} : style) }}
       role="img"
       aria-label={`${phase} phase`}
     >
-      {emoji}
+      {PHASE_EMOJI[phase] || "🌱"}
     </span>
   );
+
+  if (withBg) {
+    const bg = bgColor || PHASE_HEX[phase] || "#082A19";
+    return (
+      <div
+        className={`inline-flex items-center justify-center rounded-full ${className}`}
+        style={{ width: size + 16, height: size + 16, background: bg, ...style }}
+      >
+        {inner}
+      </div>
+    );
+  }
+
+  return inner;
 }
 
 /** Small inline variant for lists / badges */

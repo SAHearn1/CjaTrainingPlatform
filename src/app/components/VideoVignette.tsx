@@ -163,7 +163,7 @@ export function VideoVignette({ scenes, title, onComplete, compact = false }: Vi
       }
       // Crossfade ambient audio to match new scene mood
       if (audioEnabled) {
-        ambientAudio.crossfade(scene.mood as any);
+        ambientAudio.crossfade(scene.mood);
       }
     }
     return () => {
@@ -183,7 +183,7 @@ export function VideoVignette({ scenes, title, onComplete, compact = false }: Vi
       setHasStarted(true);
     }
     if (audioEnabled) {
-      ambientAudio.play(scene.mood as any);
+      ambientAudio.play(scene.mood);
     }
     setIsPlaying(true);
   };
@@ -220,7 +220,7 @@ export function VideoVignette({ scenes, title, onComplete, compact = false }: Vi
     if (audioEnabled) {
       ambientAudio.stop();
     } else if (isPlaying) {
-      ambientAudio.play(scene.mood as any);
+      ambientAudio.play(scene.mood);
     }
     setAudioEnabled(!audioEnabled);
   };
