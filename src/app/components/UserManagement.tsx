@@ -28,6 +28,7 @@ import { useAuth } from "./AuthContext";
 import { RequireRole } from "./SecurityBadge";
 import * as api from "./api";
 import { getAccessTier } from "./security";
+import { ROLE_LABELS } from "./data";
 
 interface ManagedUser {
   userId: string;
@@ -41,21 +42,6 @@ interface ManagedUser {
   completedModules: number;
   inProgressModules: number;
 }
-
-const ROLE_LABELS: Record<string, string> = {
-  law_enforcement: "Law Enforcement",
-  cpi: "Child Protective Investigator",
-  prosecutor: "Prosecutor",
-  judge: "Judge",
-  medical: "Medical Professional",
-  school: "School Personnel",
-  advocate: "Victim Advocate",
-  forensic: "Forensic Interviewer",
-  mandated_reporter: "Mandated Reporter",
-  supervisor: "Supervisor",
-  admin: "Administrator",
-  superadmin: "Super Administrator",
-};
 
 const TIER_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   learner: { bg: "rgba(13,59,34,0.06)", text: "#0D3B22", border: "rgba(13,59,34,0.15)" },

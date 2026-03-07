@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import {
   TreePine,
   LayoutDashboard,
@@ -24,6 +24,7 @@ import { OnboardingGuide, HelpAssistant } from "./OnboardingGuide";
 import { useAuth } from "./AuthContext";
 import { SessionMonitor, LegalFooter, SecurityBadge } from "./SecurityBadge";
 import { hasPermission, canAccessRoute, getAccessTier } from "./security";
+import { ROLE_LABELS } from "./data";
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: "modules:read" as const },
@@ -46,28 +47,20 @@ const fiveRsColors: Record<string, string> = {
 
 export function Layout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { profile, user, loading, signOut } = useAuth();
   const { resolvedTheme, setTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const mainHeadingRef = useRef<HTMLDivElement>(null);
+
+  // WCAG 2.1 SC 2.4.3 — move focus to main content area on every route change
+  useEffect(() => {
+    mainHeadingRef.current?.focus();
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     await signOut();
     navigate("/");
-  };
-
-  const roleLabels: Record<string, string> = {
-    law_enforcement: "Law Enforcement",
-    cpi: "Child Protective Investigator",
-    prosecutor: "Prosecutor",
-    judge: "Judge",
-    medical: "Medical Professional",
-    school: "School Personnel",
-    advocate: "Victim Advocate",
-    forensic: "Forensic Interviewer",
-    mandated_reporter: "Mandated Reporter",
-    supervisor: "Supervisor",
-    admin: "Administrator",
-    superadmin: "Super Administrator",
   };
 
   if (!loading && !user) {
@@ -94,6 +87,13 @@ export function Layout() {
 
   return (
     <div className="h-screen flex overflow-hidden">
+      {/* WCAG 2.1 SC 2.4.1 — skip navigation link for keyboard users */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:rounded focus:text-sm focus:font-semibold focus:bg-background focus:text-foreground focus:ring-2 focus:ring-offset-2 focus:ring-[#C9A84C]"
+      >
+        Skip to main content
+      </a>
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
@@ -211,7 +211,7 @@ export function Layout() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs truncate" style={{ color: "#C9A84C" }}>{displayName}</p>
-              <p className="text-xs truncate" style={{ color: "rgba(242,244,202,0.5)" }}>{roleLabels[displayRole] || displayRole}</p>
+              <p className="text-xs truncate" style={{ color: "rgba(242,244,202,0.5)" }}>{ROLE_LABELS[displayRole] || displayRole}</p>
             </div>
             <button
               onClick={handleLogout}
@@ -249,7 +249,7 @@ export function Layout() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto">
+        <main id="main-content" className="flex-1 overflow-y-auto" ref={mainHeadingRef} tabIndex={-1} style={{ outline: "none" }}>
           <Outlet />
         </main>
 

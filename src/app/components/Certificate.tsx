@@ -1,4 +1,4 @@
-import { MODULES } from "./data";
+import { MODULES, ROLE_LABELS } from "./data";
 import {
   Award,
   Download,
@@ -21,17 +21,6 @@ export function Certificate() {
 
   const completedModules = userProgress.filter((p) => p.status === "completed");
   const allCompleted = completedModules.length === MODULES.length;
-
-  const roleLabels: Record<string, string> = {
-    law_enforcement: "Law Enforcement Officer",
-    cpi: "Child Protective Investigator",
-    prosecutor: "Prosecuting Attorney",
-    judge: "Judicial Officer",
-    medical: "Medical Professional",
-    school: "School Personnel",
-    advocate: "Victim Advocate",
-    forensic: "Forensic Interviewer",
-  };
 
   const [certId, setCertId] = useState<string | null>(null);
   const [certIssuedAt, setCertIssuedAt] = useState<string | null>(null);
