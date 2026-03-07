@@ -838,7 +838,7 @@ export function Landing() {
                 className="backdrop-blur-sm rounded-xl p-4 text-center"
                 style={{ background: "rgba(201,168,76,0.1)", border: "1px solid rgba(201,168,76,0.25)" }}
               >
-                <div className="flex justify-center mb-2" style={{ color: "rgba(201,168,76,0.7)" }}>{stat.icon}</div>
+                <div className="flex justify-center mb-2" style={{ color: "#C9A84C" }}>{stat.icon}</div>
                 <div className="text-sm" style={{ color: "#C9A84C" }}>{stat.label}</div>
                 <div className="text-xs mt-1" style={{ color: "rgba(242,244,202,0.65)" }}>{stat.sub}</div>
               </div>
@@ -916,7 +916,7 @@ export function Landing() {
                 className="bg-card rounded-xl border border-border p-6 flex flex-col"
               >
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-4"
-                  style={{ background: "rgba(201,168,76,0.12)", color: "#C9A84C" }}
+                  style={{ background: "rgba(201,168,76,0.12)", color: "var(--gold-text)" }}
                 >
                   {card.icon}
                 </div>

@@ -495,7 +495,7 @@ export function LegalFooter({ variant = "full" }: { variant?: "full" | "compact"
               <p className="text-sm font-semibold" style={{ color: "#C9A84C", fontFamily: "'Playfair Display', Georgia, serif" }}>
                 RootWork Framework&trade;
               </p>
-              <p className="text-[10px]" style={{ color: "rgba(242,244,202,0.5)" }}>
+              <p className="text-[10px]" style={{ color: "rgba(242,244,202,0.65)" }}>
                 GALS &times; RWFW Co-Branded Training Platform
               </p>
             </div>
@@ -516,10 +516,10 @@ export function LegalFooter({ variant = "full" }: { variant?: "full" | "compact"
 
         {/* Middle: 5Rs + Links */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 pb-6" style={{ borderBottom: "1px solid rgba(201,168,76,0.15)" }}>
-          <p className="text-xs" style={{ color: "rgba(201,168,76,0.5)" }}>
+          <p className="text-xs" style={{ color: "#C9A84C" }}>
             Root &middot; Regulate &middot; Reflect &middot; Restore &middot; Reconnect
           </p>
-          <div className="flex items-center gap-4 text-[10px]" style={{ color: "rgba(242,244,202,0.4)" }}>
+          <div className="flex items-center gap-4 text-[10px]" style={{ color: "rgba(242,244,202,0.65)" }}>
             <a href="#" className="hover:text-gold-leaf transition-colors">Privacy Policy</a>
             <span>&middot;</span>
             <a href="#" className="hover:text-gold-leaf transition-colors">Terms of Service</a>
@@ -532,12 +532,12 @@ export function LegalFooter({ variant = "full" }: { variant?: "full" | "compact"
 
         {/* Bottom: Legal */}
         <div className="space-y-3 text-center">
-          <p className="text-[11px] font-medium" style={{ color: "rgba(201,168,76,0.6)" }}>
+          <p className="text-[11px] font-medium" style={{ color: "#C9A84C" }}>
             &copy; {currentYear} Community Exceptional Children&rsquo;s Services Centers.
             All Rights Reserved.
           </p>
           <div className="max-w-3xl mx-auto space-y-2">
-            <p className="text-[9px] leading-relaxed" style={{ color: "rgba(242,244,202,0.35)" }}>
+            <p className="text-[9px] leading-relaxed" style={{ color: "rgba(242,244,202,0.6)" }}>
               The RootWork Framework&trade;, RootWork 5Rs&trade;, TRACE Cognitive Cycle&trade;,
               and all associated logos, trade dress, curriculum content, assessment instruments,
               scenario simulations, and training materials are the exclusive intellectual property
@@ -546,14 +546,14 @@ export function LegalFooter({ variant = "full" }: { variant?: "full" | "compact"
               exploitation of any platform content, in whole or in part, is strictly prohibited
               without prior written consent.
             </p>
-            <p className="text-[9px] leading-relaxed" style={{ color: "rgba(242,244,202,0.3)" }}>
+            <p className="text-[9px] leading-relaxed" style={{ color: "rgba(242,244,202,0.6)" }}>
               GALS (Growing and Loving Sisters Foundation Inc.) is a registered trademark used
               under license. All third-party trademarks, service marks, trade names, and statutory
               citations referenced herein remain the property of their respective owners and are
               used for identification and educational purposes only. Citation of legal statutes
               (including O.C.G.A., U.S.C., and state-specific codes) does not constitute legal advice.
             </p>
-            <p className="text-[9px] leading-relaxed" style={{ color: "rgba(242,244,202,0.25)" }}>
+            <p className="text-[9px] leading-relaxed" style={{ color: "rgba(242,244,202,0.6)" }}>
               This platform implements security controls aligned with the FBI Criminal Justice
               Information Services (CJIS) Security Policy v5.9.5, including AES-256-GCM encryption
               at rest, role-based access control (RBAC), PBKDF2-SHA256 key derivation, automated
@@ -562,7 +562,7 @@ export function LegalFooter({ variant = "full" }: { variant?: "full" | "compact"
               and HIPAA administrative safeguards is maintained where applicable. Security posture
               is subject to periodic review and assessment.
             </p>
-            <p className="text-[8px]" style={{ color: "rgba(242,244,202,0.2)" }}>
+            <p className="text-[8px]" style={{ color: "rgba(242,244,202,0.6)" }}>
               Platform Version 2.0.0 | Security Policy Effective Date: March 6, 2026 |
               Built with enterprise-grade infrastructure on Supabase
             </p>
