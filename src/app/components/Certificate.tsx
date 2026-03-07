@@ -128,7 +128,7 @@ export function Certificate() {
                   <p className="text-xs text-muted-foreground mb-1">This certifies that</p>
                   <p className="text-xl text-foreground mb-1" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>{displayName}</p>
                   <p className="text-sm text-muted-foreground mb-6">
-                    {roleLabels[displayRole] || displayRole}
+                    {ROLE_LABELS[displayRole] || displayRole}
                   </p>
 
                   <p className="text-xs text-muted-foreground mb-4">
