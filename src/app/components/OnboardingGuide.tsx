@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   TreePine,
   ArrowRight,
@@ -17,9 +17,14 @@ import {
   Lightbulb,
   GraduationCap,
   Compass,
+  Send,
+  Loader2,
+  MessageCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { PhaseIcon } from "./PhaseIcon";
+import { useAuth } from "./AuthContext";
+import { rootyChat } from "./api";
 
 interface OnboardingStep {
   id: string;
@@ -510,10 +515,21 @@ const QUICK_TIPS = [
   { title: "Score to Pass", text: "You need 70% on the Post-Assessment to earn a module completion certificate." },
 ];
 
+interface ChatMessage {
+  role: "user" | "assistant";
+  text: string;
+}
+
 export function HelpAssistant() {
+  const { accessToken } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [activeTip, setActiveTip] = useState(0);
   const [showPulse, setShowPulse] = useState(true);
+  const [chatMode, setChatMode] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatLoading, setChatLoading] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Rotate tips
   useEffect(() => {
@@ -527,6 +543,29 @@ export function HelpAssistant() {
   useEffect(() => {
     if (isOpen) setShowPulse(false);
   }, [isOpen]);
+
+  // Scroll to bottom on new messages
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
+
+  async function handleSendMessage() {
+    const text = chatInput.trim();
+    if (!text || chatLoading) return;
+    setChatInput("");
+    const userMsg: ChatMessage = { role: "user", text };
+    const history = [...chatMessages, userMsg];
+    setChatMessages(history);
+    setChatLoading(true);
+    try {
+      const { reply } = await rootyChat(accessToken, history);
+      setChatMessages([...history, { role: "assistant", text: reply }]);
+    } catch {
+      setChatMessages([...history, { role: "assistant", text: "I'm having trouble connecting right now. Please try again in a moment." }]);
+    } finally {
+      setChatLoading(false);
+    }
+  }
 
   const handleRestartTour = () => {
     localStorage.removeItem(STORAGE_KEY);
@@ -565,20 +604,56 @@ export function HelpAssistant() {
           >
             {/* Header */}
             <div className="bg-primary px-5 py-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
-                  <TreePine className="w-5 h-5 text-white" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+                    <TreePine className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-white text-sm">RootWork Guide</h3>
+                    <p className="text-white/60 text-xs">{chatMode ? "Ask me anything" : "How can I help?"}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-white text-sm">RootWork Guide</h3>
-                  <p className="text-white/60 text-xs">How can I help?</p>
-                </div>
+                <button
+                  onClick={() => setChatMode((v) => !v)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/15 hover:bg-white/25 text-white text-xs transition-colors"
+                >
+                  {chatMode ? <Lightbulb className="w-3.5 h-3.5" /> : <MessageCircle className="w-3.5 h-3.5" />}
+                  {chatMode ? "Guide" : "Ask Rooty"}
+                </button>
               </div>
             </div>
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {/* Quick actions */}
+              {chatMode && (
+                <div className="space-y-3 min-h-[120px]">
+                  {chatMessages.length === 0 && (
+                    <div className="text-center py-6">
+                      <TreePine className="w-8 h-8 mx-auto mb-2 text-muted-foreground/40" />
+                      <p className="text-xs text-muted-foreground">Ask Rooty about the 5Rs framework, trauma-informed practices, or your training progress.</p>
+                    </div>
+                  )}
+                  {chatMessages.map((msg, i) => (
+                    <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                      <div
+                        className={`max-w-[80%] rounded-2xl px-3 py-2 text-xs ${msg.role === "user" ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-secondary text-foreground rounded-bl-sm"}`}
+                      >
+                        {msg.text}
+                      </div>
+                    </div>
+                  ))}
+                  {chatLoading && (
+                    <div className="flex justify-start">
+                      <div className="bg-secondary rounded-2xl rounded-bl-sm px-3 py-2">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+                      </div>
+                    </div>
+                  )}
+                  <div ref={chatEndRef} />
+                </div>
+              )}
+              {!chatMode && <>{/* Quick actions */}
               <div>
                 <p className="text-xs text-muted-foreground mb-2">Quick Actions</p>
                 <div className="grid grid-cols-2 gap-2">
@@ -681,13 +756,35 @@ export function HelpAssistant() {
                   ))}
                 </div>
               </div>
+              </>}
             </div>
 
-            {/* Footer */}
+            {/* Footer — chat input in chat mode, otherwise static label */}
             <div className="px-4 py-3 border-t border-border bg-secondary/30">
-              <p className="text-[10px] text-muted-foreground text-center">
-                RootWork Training Platform • 5Rs Framework • TRACE Cognitive Cycle
-              </p>
+              {chatMode ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                    placeholder="Ask a question…"
+                    className="flex-1 px-3 py-2 text-xs rounded-xl bg-background border border-border focus:outline-none focus:border-primary"
+                    disabled={chatLoading}
+                  />
+                  <button
+                    onClick={handleSendMessage}
+                    disabled={!chatInput.trim() || chatLoading}
+                    className="w-8 h-8 flex items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-40 transition-opacity"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <p className="text-[10px] text-muted-foreground text-center">
+                  RootWork Training Platform • 5Rs Framework • TRACE Cognitive Cycle
+                </p>
+              )}
             </div>
           </motion.div>
         )}
