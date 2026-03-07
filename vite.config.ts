@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig, type Plugin } from 'vite'
 import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
@@ -40,6 +41,19 @@ export default defineConfig({
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv', '**/*.png'],
+
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov'],
+      include: ['src/app/components/**'],
+      exclude: ['src/app/components/ui/**'],
+    },
+  },
 
   build: {
     chunkSizeWarningLimit: 600,

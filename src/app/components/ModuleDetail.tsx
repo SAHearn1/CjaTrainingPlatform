@@ -121,6 +121,41 @@ export function ModuleDetail() {
   const totalSections = module.sections.length;
   const pct = Math.round((completedSections / totalSections) * 100);
 
+  const preScore = progress?.preAssessmentScore;
+  // Personalization: suggest focused sections when pre-assessment score is low
+  const personalizationTip = preScore != null
+    ? preScore >= 80
+      ? "Your pre-assessment shows strong baseline knowledge. Consider challenging yourself by completing the Post-Assessment first."
+      : preScore >= 60
+      ? "You have a good foundation. Pay extra attention to the Restore and Reconnect phases to strengthen procedural knowledge."
+      : "Complete each section carefully — your pre-assessment indicates this content will be new. Take notes in the Reflection prompts as you go."
+    : null;
+
+  function handleDownloadSection(section: (typeof module.sections)[0]) {
+    let content = `RootWork Training — Module ${module.id}: ${module.title}\n`;
+    content += `Section: ${section.phase} — ${section.title}\n`;
+    content += `${"=".repeat(60)}\n\n`;
+    content += `${section.description}\n\n`;
+    content += `KEY CONCEPTS\n${"-".repeat(40)}\n`;
+    section.content.forEach((point, i) => {
+      content += `${i + 1}. ${point}\n`;
+    });
+    if (section.keyTerms && section.keyTerms.length > 0) {
+      content += `\nKEY TERMS\n${"-".repeat(40)}\n`;
+      section.keyTerms.forEach((kt) => {
+        content += `${kt.term}: ${kt.definition}\n`;
+      });
+    }
+    content += `\n${"=".repeat(60)}\n© RootWork Training Platform — For authorized training use only\n`;
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Module${module.id}_${section.phase}_Reference.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   const buildModuleOverviewTTS = () => {
     return `Module ${module.id}: ${module.title}. ${module.description}. This module takes approximately ${module.duration} to complete and contains ${totalSections} learning sections following the RootWork 5Rs framework: Root, Regulate, Reflect, Restore, and Reconnect.`;
   };
@@ -235,6 +270,23 @@ export function ModuleDetail() {
           </div>
         </button>
       </div>
+
+      {/* Pre-assessment personalization banner */}
+      {personalizationTip && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="mb-6 rounded-xl border px-5 py-4 flex items-start gap-3"
+          style={{ background: "rgba(30,58,95,0.05)", borderColor: "rgba(30,58,95,0.15)" }}
+        >
+          <Lightbulb className="w-4 h-4 mt-0.5 shrink-0" style={{ color: "#1E3A5F" }} />
+          <div>
+            <p className="text-xs font-medium mb-0.5" style={{ color: "#1E3A5F" }}>Personalized Recommendation</p>
+            <p className="text-xs text-muted-foreground">{personalizationTip}</p>
+          </div>
+        </motion.div>
+      )}
 
       {/* State Selector — Module 7 only */}
       {module.id === 7 && (
@@ -367,10 +419,13 @@ export function ModuleDetail() {
                             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><Video className="w-5 h-5 text-primary" /></div>
                             <div><p className="text-xs">Video Lecture</p><p className="text-xs text-muted-foreground">15-20 min narrated presentation</p></div>
                           </div>
-                          <div className="bg-muted rounded-lg p-4 flex items-center gap-3 hover:bg-muted/80 transition-colors cursor-pointer">
+                          <button
+                            onClick={() => handleDownloadSection(section)}
+                            className="bg-muted rounded-lg p-4 flex items-center gap-3 hover:bg-muted/80 transition-colors cursor-pointer w-full text-left"
+                          >
                             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><FileDown className="w-5 h-5 text-primary" /></div>
-                            <div><p className="text-xs">Reference Materials</p><p className="text-xs text-muted-foreground">Downloadable PDF guide</p></div>
-                          </div>
+                            <div><p className="text-xs">Reference Materials</p><p className="text-xs text-muted-foreground">Download section quick-reference guide</p></div>
+                          </button>
                         </div>
 
                         <div className="rounded-xl p-5 border" style={{ background: hexAlpha(hex, 0.05), borderColor: hexAlpha(hex, 0.15) }}>
