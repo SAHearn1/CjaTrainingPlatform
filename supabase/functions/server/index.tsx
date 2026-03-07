@@ -678,7 +678,7 @@ app.get("/make-server-39a35780/admin/stats", async (c) => {
         avgScore,
         moduleCompletion,
         scoreDistribution,
-        agencyBreakdown,
+        roleBreakdown,
       },
     });
   } catch (e) {
