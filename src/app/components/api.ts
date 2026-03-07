@@ -108,6 +108,20 @@ export async function getAuditLogs(token: string) {
   return request("/admin/audit", {}, token);
 }
 
+// ---------- Certificates ----------
+
+export async function generateCertificate(token: string) {
+  return request("/certificates/generate", { method: "POST" }, token);
+}
+
+export async function getCertificates(token: string) {
+  return request("/certificates", {}, token);
+}
+
+export async function getCertificate(certId: string) {
+  return request(`/certificates/${certId}`);
+}
+
 // ---------- Licensing ----------
 
 export async function getLicensePlans() {

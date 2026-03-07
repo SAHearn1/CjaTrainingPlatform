@@ -261,6 +261,78 @@ app.get("/make-server-39a35780/simulations", async (c) => {
   }
 });
 
+// ---------- Certificates ----------
+
+// POST /certificates/generate — idempotent: returns existing cert or creates a new one
+app.post("/make-server-39a35780/certificates/generate", async (c) => {
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized" }, 401);
+  try {
+    // Return existing certificate if already issued (idempotent)
+    const existing = await kv.get(`user:${userId}:certificate`);
+    if (existing) {
+      return c.json({ certificate: existing });
+    }
+
+    // Verify at least one module is completed
+    const progressResults = await encryptedGetByPrefix(kv.getByPrefix, `user:${userId}:progress:`);
+    interface ProgressRecord { status: string; }
+    const completedModules = (progressResults as ProgressRecord[] || []).filter((p) => p.status === "completed");
+    if (completedModules.length === 0) {
+      return c.json({ error: "No completed modules found" }, 400);
+    }
+
+    // Generate deterministic cert ID: RW-{year}-{8-char hex}
+    const year = new Date().getFullYear();
+    const uuid = crypto.randomUUID().replace(/-/g, "").substring(0, 8).toUpperCase();
+    const certId = `RW-${year}-${uuid}`;
+
+    const certificate = {
+      certId,
+      userId,
+      issuedAt: new Date().toISOString(),
+      completedModules: completedModules.length,
+    };
+
+    // Persist by user (for GET /certificates) and by certId (for public verification)
+    await kv.set(`user:${userId}:certificate`, certificate);
+    await kv.set(`cert:${certId}`, { certId, userId, issuedAt: certificate.issuedAt });
+
+    await auditLog("certificate_generate", userId, "success", `certId=${certId}`, c);
+    return c.json({ certificate });
+  } catch (e) {
+    await auditLog("certificate_generate", userId, "failure", String(e), c);
+    console.log("Certificate generate error:", e);
+    return c.json({ error: `Certificate generate error: ${e}` }, 500);
+  }
+});
+
+// GET /certificates — fetch the current user's certificates
+app.get("/make-server-39a35780/certificates", async (c) => {
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized" }, 401);
+  try {
+    const certificate = await kv.get(`user:${userId}:certificate`);
+    return c.json({ certificates: certificate ? [certificate] : [] });
+  } catch (e) {
+    console.log("Certificates fetch error:", e);
+    return c.json({ error: `Certificates fetch error: ${e}` }, 500);
+  }
+});
+
+// GET /certificates/:certId — public verification endpoint
+app.get("/make-server-39a35780/certificates/:certId", async (c) => {
+  const certId = c.req.param("certId");
+  try {
+    const certRef = await kv.get(`cert:${certId}`);
+    if (!certRef) return c.json({ error: "Certificate not found" }, 404);
+    return c.json({ certificate: certRef });
+  } catch (e) {
+    console.log("Certificate lookup error:", e);
+    return c.json({ error: `Certificate lookup error: ${e}` }, 500);
+  }
+});
+
 // ---------- Stripe / Licensing ----------
 
 const LICENSE_PLANS = [
