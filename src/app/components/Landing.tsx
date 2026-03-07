@@ -249,7 +249,7 @@ function RootyChatbot() {
                 <p className="text-sm font-semibold" style={{ color: "#C9A84C" }}>
                   Rooty
                 </p>
-                <p className="text-[10px]" style={{ color: "rgba(242,244,202,0.5)" }}>
+                <p className="text-[10px]" style={{ color: "rgba(242,244,202,0.65)" }}>
                   RootWork Framework Assistant
                 </p>
               </div>
@@ -840,7 +840,7 @@ export function Landing() {
               >
                 <div className="flex justify-center mb-2" style={{ color: "rgba(201,168,76,0.7)" }}>{stat.icon}</div>
                 <div className="text-sm" style={{ color: "#C9A84C" }}>{stat.label}</div>
-                <div className="text-xs mt-1" style={{ color: "rgba(242,244,202,0.5)" }}>{stat.sub}</div>
+                <div className="text-xs mt-1" style={{ color: "rgba(242,244,202,0.65)" }}>{stat.sub}</div>
               </div>
             ))}
           </motion.div>
@@ -1086,7 +1086,7 @@ export function Landing() {
               transition={{ duration: 0.6 }}
               className="text-center mb-10"
             >
-              <p className="uppercase tracking-[0.2em] text-xs font-medium mb-3" style={{ color: "rgba(201,168,76,0.7)" }}>
+              <p className="uppercase tracking-[0.2em] text-xs font-medium mb-3" style={{ color: "#C9A84C" }}>
                 Methodology
               </p>
               <h2 className="mb-3" style={{ fontFamily: "var(--font-display)", color: "#C9A84C" }}>
@@ -1128,7 +1128,7 @@ export function Landing() {
               viewport={{ once: true }}
               transition={{ duration: 0.8, delay: 0.3 }}
               className="text-center mt-10 max-w-2xl mx-auto text-sm italic"
-              style={{ color: "rgba(242,244,202,0.5)" }}
+              style={{ color: "rgba(242,244,202,0.70)" }}
             >
               "The way we investigate shapes what children believe about the systems designed
               to protect them. This platform exists to ensure that belief is one of safety,
