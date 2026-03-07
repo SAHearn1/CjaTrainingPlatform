@@ -22,6 +22,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { TTSControls, InlineTTSButton } from "./TTSControls";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { VideoVignette } from "./VideoVignette";
+import { VideoEmbed } from "./VideoEmbed";
 import { useAuth } from "./AuthContext";
 import { PhaseIcon, PHASE_HEX as PHASE_HEX_IMPORT, hexAlpha } from "./PhaseIcon";
 import { StateSelector, StateComparisonCard } from "./StateSelector";
@@ -414,11 +415,22 @@ export function ModuleDetail() {
                           </div>
                         )}
 
-                        <div className="grid sm:grid-cols-2 gap-3 mb-4">
-                          <div className="bg-muted rounded-lg p-4 flex items-center gap-3 hover:bg-muted/80 transition-colors cursor-pointer">
-                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><Video className="w-5 h-5 text-primary" /></div>
-                            <div><p className="text-xs">Video Lecture</p><p className="text-xs text-muted-foreground">15-20 min narrated presentation</p></div>
+                        {section.videoUrl && (
+                          <div className="mb-4">
+                            <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1.5">
+                              <Video className="w-3.5 h-3.5" /> Video Lecture
+                            </p>
+                            <VideoEmbed url={section.videoUrl} title={`${section.phase} — ${section.title}`} />
                           </div>
+                        )}
+
+                        <div className="grid sm:grid-cols-2 gap-3 mb-4">
+                          {!section.videoUrl && (
+                          <div className="bg-muted rounded-lg p-4 flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><Video className="w-5 h-5 text-primary" /></div>
+                            <div><p className="text-xs">Video Lecture</p><p className="text-xs text-muted-foreground">Coming soon — check back for updates</p></div>
+                          </div>
+                          )}
                           <button
                             onClick={() => handleDownloadSection(section)}
                             className="bg-muted rounded-lg p-4 flex items-center gap-3 hover:bg-muted/80 transition-colors cursor-pointer w-full text-left"
