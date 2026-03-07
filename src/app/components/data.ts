@@ -11,6 +11,7 @@ export const ROLES = [
   { id: "advocate", label: "Victim Advocate", icon: "HandHeart" },
   { id: "forensic", label: "Forensic Interviewer", icon: "Mic" },
   { id: "mandated_reporter", label: "Mandated Reporter", icon: "FileWarning" },
+  { id: "instructor", label: "Training Instructor", icon: "GraduationCap" },
 ] as const;
 
 export type RoleId = (typeof ROLES)[number]["id"];
@@ -26,6 +27,7 @@ export const ROLE_LABELS: Record<string, string> = {
   advocate: "Victim Advocate",
   forensic: "Forensic Interviewer",
   mandated_reporter: "Mandated Reporter",
+  instructor: "Training Instructor",
   supervisor: "Supervisor",
   admin: "Administrator",
   superadmin: "Super Administrator",
@@ -157,6 +159,8 @@ export const MODULES: Module[] = [
           { term: "CAPTA", definition: "Child Abuse Prevention and Treatment Act — federal legislation providing funding and guidance for child protective services" },
           { term: "Neurobiology of Trauma", definition: "The study of how traumatic experiences affect brain structure, chemistry, and function" },
         ],
+        // TODO: Replace with licensed training video URL before production deployment
+        videoUrl: "https://www.youtube.com/watch?v=X7dRe0Xs6IE",
       },
       {
         id: "m1-regulate",

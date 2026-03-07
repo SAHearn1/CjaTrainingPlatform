@@ -31,9 +31,11 @@ const navItems = [
   { to: "/modules", label: "Training Modules", icon: BookOpen, permission: "modules:read" as const },
   { to: "/certificates", label: "Certificates", icon: Award, permission: "certificates:generate" as const },
   { to: "/licensing", label: "Licensing", icon: CreditCard, permission: "modules:read" as const },
+  { to: "/instructor", label: "Instructor View", icon: Users, permission: "reports:view" as const },
   { to: "/admin", label: "Admin Analytics", icon: BarChart3, permission: "admin:dashboard" as const },
   { to: "/admin/users", label: "User Management", icon: Users, permission: "admin:users" as const },
   { to: "/admin/audit", label: "Audit Log", icon: FileText, permission: "admin:audit" as const },
+  { to: "/admin/agencies", label: "Agency Management", icon: BarChart3, permission: "admin:users" as const },
 ];
 
 // Brand 5Rs colors
