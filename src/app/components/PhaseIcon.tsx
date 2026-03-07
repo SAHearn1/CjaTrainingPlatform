@@ -58,40 +58,54 @@ interface PhaseIconProps {
   className?: string;
   /** Extra inline styles */
   style?: React.CSSProperties;
+  /** Wrap the icon in a rounded background container */
+  withBg?: boolean;
+  /** Background color override when withBg is true (defaults to phase hex at 10% opacity) */
+  bgColor?: string;
 }
 
 /**
  * Renders the brand icon for a given 5Rs phase.
  * Falls back to emoji if no asset is mapped.
  */
-export function PhaseIcon({ phase, size = 32, className = "", style }: PhaseIconProps) {
+export function PhaseIcon({ phase, size = 32, className = "", style, withBg, bgColor }: PhaseIconProps) {
   const asset = PHASE_ASSET[phase];
+  const phaseHex = PHASE_HEX[phase] ?? "#082A19";
+  const containerBg = bgColor ?? hexAlpha(phaseHex, 0.1);
 
-  if (asset) {
-    return (
-      <img
-        src={asset}
-        alt={`${phase} phase icon`}
-        width={size}
-        height={size}
-        className={`object-contain ${className}`}
-        style={{ width: size, height: size, ...style }}
-      />
-    );
-  }
-
-  // Emoji fallback
-  const emoji = PHASE_EMOJI[phase] || "🌱";
-  return (
+  const iconEl = asset ? (
+    <img
+      src={asset}
+      alt={`${phase} phase icon`}
+      width={size}
+      height={size}
+      className={`object-contain${withBg ? "" : ` ${className}`}`}
+      style={withBg ? { width: size, height: size } : { width: size, height: size, ...style }}
+    />
+  ) : (
+    // Emoji fallback
     <span
-      className={className}
-      style={{ fontSize: size * 0.7, lineHeight: `${size}px`, display: "inline-block", width: size, height: size, textAlign: "center", ...style }}
+      className={withBg ? undefined : className}
+      style={{ fontSize: size * 0.7, lineHeight: `${size}px`, display: "inline-block", width: size, height: size, textAlign: "center", ...(withBg ? undefined : style) }}
       role="img"
       aria-label={`${phase} phase`}
     >
-      {emoji}
+      {PHASE_EMOJI[phase] || "🌱"}
     </span>
   );
+
+  if (withBg) {
+    return (
+      <div
+        className={`flex items-center justify-center ${className}`}
+        style={{ width: size * 1.75, height: size * 1.75, borderRadius: "50%", background: containerBg, ...style }}
+      >
+        {iconEl}
+      </div>
+    );
+  }
+
+  return iconEl;
 }
 
 /** Small inline variant for lists / badges */

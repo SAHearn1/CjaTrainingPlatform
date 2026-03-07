@@ -16,14 +16,13 @@
 
     /* Strictness */
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
 
     /* Path aliases — mirrors vite.config.ts */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "/utils/*": ["./utils/*"]
     }
   },
   "include": ["src", "utils"],

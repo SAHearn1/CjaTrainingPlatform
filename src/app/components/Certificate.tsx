@@ -126,7 +126,7 @@ export function Certificate() {
           </h2>
 
           {/* Main Certificate — Evergreen + Gold design */}
-          <div className="bg-card rounded-2xl overflow-hidden mb-6" style={{ border: "2px solid rgba(201,168,76,0.3)" }}>
+          <div id="certificate-printable" className="bg-card rounded-2xl overflow-hidden mb-6" style={{ border: "2px solid rgba(201,168,76,0.3)" }}>
             <div className="p-8 sm:p-12 text-center" style={{ background: "rgba(8,42,25,0.03)" }}>
               <div className="max-w-lg mx-auto">
                 <div id="certificate-printable" ref={certRef} className="rounded-xl p-8 bg-white" style={{ border: "2px solid rgba(201,168,76,0.3)" }}>
@@ -182,7 +182,7 @@ export function Certificate() {
               </div>
             </div>
 
-            <div className="p-4 flex justify-center gap-3 border-t border-border">
+            <div className="p-4 flex justify-center gap-3 border-t border-border print:hidden">
               <button onClick={handleDownloadPDF} className="px-5 py-2.5 bg-primary text-primary-foreground rounded-full text-sm hover:opacity-90 flex items-center gap-2">
                 <Download className="w-4 h-4" /> Download PDF
               </button>
