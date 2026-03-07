@@ -27,7 +27,7 @@ export function Simulation() {
   const scenarios = module?.scenarios || [];
   const { saveSimulationResult, updateModuleProgress, progress: userProgress } = useAuth();
 
-  const [scenarioIdx] = useState(0);
+  const [scenarioIdx, setScenarioIdx] = useState(0);
   const [stepIdx, setStepIdx] = useState(0);
   const [selectedChoice, setSelectedChoice] = useState<ScenarioChoice | null>(null);
   const [decisions, setDecisions] = useState<ScenarioChoice[]>([]);
@@ -124,6 +124,16 @@ export function Simulation() {
     setActiveBranchKey(null);
   };
 
+  const handleNextScenario = () => {
+    setScenarioIdx((prev) => prev + 1);
+    setStepIdx(0);
+    setSelectedChoice(null);
+    setDecisions([]);
+    setIsComplete(false);
+    setVignetteComplete(false);
+    setActiveBranchKey(null);
+  };
+
   const hasVignette = resolvedVignettes.length > 0;
   const showChoices = !hasVignette || vignetteComplete;
   const optimalCount = decisions.filter((d) => d.isOptimal).length;
@@ -203,6 +213,11 @@ export function Simulation() {
             </div>
             <div className="flex gap-3 justify-center">
               <button onClick={handleRestart} className="px-5 py-2.5 rounded-lg border border-border hover:bg-secondary text-sm flex items-center gap-2"><RefreshCw className="w-4 h-4" /> Try Again</button>
+              {scenarioIdx < scenarios.length - 1 && (
+                <button onClick={handleNextScenario} className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm hover:opacity-90 flex items-center gap-2">
+                  Next Scenario <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
               <Link to={`/modules/${module.id}`} className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm hover:opacity-90">Return to Module</Link>
             </div>
           </div>

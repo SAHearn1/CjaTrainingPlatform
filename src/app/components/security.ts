@@ -53,6 +53,7 @@ export const ROLE_TIER_MAP: Record<string, AccessTier> = {
   advocate: "learner",
   forensic: "learner",
   mandated_reporter: "learner",
+  instructor: "supervisor",
   supervisor: "supervisor",
   admin: "admin",
   superadmin: "superadmin",
@@ -155,6 +156,7 @@ export const ROUTE_PERMISSIONS: Record<string, Permission> = {
   "/admin/audit": "admin:audit",
   "/admin/users": "admin:users",
   "/admin": "admin:dashboard",
+  "/instructor": "reports:view",
   "/licensing": "modules:read",
   "/security": "security:manage",
 };

@@ -6,11 +6,30 @@
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <title>RootWork — CJA Training Platform</title>
     <meta name="description" content="CJIS-compliant, trauma-informed training platform for criminal justice professionals. Master the 5Rs framework with interactive simulations and expert-led modules." />
+    <style>
+      /* WCAG 2.1 AA skip navigation link — visible on focus */
+      .skip-nav {
+        position: absolute;
+        top: -999px;
+        left: 0;
+        z-index: 9999;
+        padding: 0.5rem 1rem;
+        background: #0D3B22;
+        color: #fff;
+        font-size: 0.875rem;
+        border-radius: 0 0 4px 0;
+        text-decoration: none;
+      }
+      .skip-nav:focus {
+        top: 0;
+      }
+    </style>
     </head>
 
     <body>
+      <a href="#main-content" class="skip-nav">Skip to main content</a>
       <div id="root"></div>
       <script type="module" src="/src/main.tsx"></script>
     </body>
   </html>
-  
+

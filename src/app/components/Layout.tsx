@@ -31,9 +31,11 @@ const navItems = [
   { to: "/modules", label: "Training Modules", icon: BookOpen, permission: "modules:read" as const },
   { to: "/certificates", label: "Certificates", icon: Award, permission: "certificates:generate" as const },
   { to: "/licensing", label: "Licensing", icon: CreditCard, permission: "modules:read" as const },
+  { to: "/instructor", label: "Instructor View", icon: Users, permission: "reports:view" as const },
   { to: "/admin", label: "Admin Analytics", icon: BarChart3, permission: "admin:dashboard" as const },
   { to: "/admin/users", label: "User Management", icon: Users, permission: "admin:users" as const },
   { to: "/admin/audit", label: "Audit Log", icon: FileText, permission: "admin:audit" as const },
+  { to: "/admin/agencies", label: "Agency Management", icon: BarChart3, permission: "admin:users" as const },
 ];
 
 // Brand 5Rs colors
@@ -243,10 +245,15 @@ export function Layout() {
           >
             {resolvedTheme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              `flex items-center gap-2 text-sm transition-colors ${isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`
+            }
+          >
             <Settings className="w-4 h-4" />
             <span className="hidden sm:inline">Settings</span>
-          </div>
+          </NavLink>
         </header>
 
         <main id="main-content" className="flex-1 overflow-y-auto" ref={mainHeadingRef} tabIndex={-1} style={{ outline: "none" }}>

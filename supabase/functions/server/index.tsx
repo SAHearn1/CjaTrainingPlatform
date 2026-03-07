@@ -14,10 +14,16 @@ const app = new Hono();
 
 app.use("*", logger(console.log));
 
+// CJIS 5.10.1: Restrict CORS to known production origins only.
+const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS") || "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 app.use(
   "/*",
   cors({
-    origin: "*",
+    origin: (origin) => (ALLOWED_ORIGINS.includes(origin) ? origin : ""),
     allowHeaders: ["Content-Type", "Authorization"],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     exposeHeaders: ["Content-Length"],
@@ -100,9 +106,25 @@ app.get("/make-server-39a35780/health", (c) => {
   return c.json({ status: "ok" });
 });
 
+// CJIS 5.10.1: In-memory rate limiter — 10 auth attempts per 15 min per IP.
+const _rateLimitMap = new Map();
+function checkRateLimit(ip, maxRequests = 10, windowMs = 15 * 60 * 1000) {
+  const now = Date.now();
+  const entry = _rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    _rateLimitMap.set(ip, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  if (entry.count >= maxRequests) return false;
+  entry.count++;
+  return true;
+}
+
 // ---------- Auth: Sign Up ----------
 
 app.post("/make-server-39a35780/signup", async (c) => {
+  const ip = c.req.header("x-forwarded-for") || c.req.header("cf-connecting-ip") || "unknown";
+  if (!checkRateLimit(ip)) return c.json({ error: "Too many requests. Please try again later." }, 429);
   try {
     const { email, password, name } = await c.req.json();
     if (!email || !password || !name) {
@@ -252,7 +274,7 @@ app.post("/make-server-39a35780/simulations", async (c) => {
       userId,
       completedAt: new Date().toISOString(),
     };
-    await kv.set(key, record);
+    await encryptedSet(kv.set, key, record);
     return c.json({ simulation: record });
   } catch (e) {
     console.log("Simulation save error:", e);
@@ -264,7 +286,7 @@ app.get("/make-server-39a35780/simulations", async (c) => {
   const userId = await getUserId(c);
   if (!userId) return c.json({ error: "Unauthorized: simulations fetch" }, 401);
   try {
-    const results = await kv.getByPrefix(`user:${userId}:simulation:`);
+    const results = await encryptedGetByPrefix(kv.getByPrefix, `user:${userId}:simulation:`);
     return c.json({ simulations: results || [] });
   } catch (e) {
     console.log("Simulations fetch error:", e);
@@ -497,6 +519,65 @@ app.post("/make-server-39a35780/licensing/confirm", async (c) => {
     console.log("License confirm error:", e);
     return c.json({ error: `License confirmation failed: ${e}` }, 500);
   }
+});
+
+// ---------- Stripe Webhook ----------
+// Canonical license activation — fires even if the user closes the browser
+// before /licensing/confirm is polled. Signature-verified by Stripe.
+
+app.post("/make-server-39a35780/licensing/webhook", async (c) => {
+  const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
+  if (!webhookSecret) return c.json({ error: "Webhook secret not configured" }, 500);
+
+  const signature = c.req.header("stripe-signature");
+  if (!signature) return c.json({ error: "Missing stripe-signature header" }, 400);
+
+  const rawBody = await c.req.text();
+  let event;
+  try {
+    const stripe = getStripe();
+    event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+  } catch (e) {
+    console.log("Webhook signature verification failed:", e);
+    return c.json({ error: "Webhook signature invalid" }, 400);
+  }
+
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object;
+    if (session.payment_status !== "paid") return c.json({ received: true });
+
+    const meta = session.metadata || {};
+    const userId = meta.userId;
+    if (!userId) return c.json({ received: true });
+
+    // Idempotency: skip if already activated
+    const existing = await kv.get("license:" + session.id);
+    if (existing) return c.json({ received: true });
+
+    const plan = LICENSE_PLANS.find((p) => p.id === meta.planId);
+    const license = {
+      planId: meta.planId,
+      planName: meta.planName || plan?.name,
+      quantity: Number(meta.quantity) || 1,
+      orgName: meta.orgName || "",
+      amountPaid: session.amount_total,
+      currency: session.currency,
+      stripeSessionId: session.id,
+      stripePaymentIntent: session.payment_intent,
+      status: "active",
+      purchasedAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+      activatedVia: "webhook",
+    };
+
+    await kv.set("user:" + userId + ":license", license);
+    await kv.set("license:" + session.id, { ...license, userId });
+    await auditLog("payment:license_activated", userId, "success",
+      "planId=" + meta.planId + " via webhook sessionId=" + session.id);
+    console.log("License activated via webhook for user:", userId);
+  }
+
+  return c.json({ received: true });
 });
 
 // ---------- Admin Stats (aggregate all users) ----------

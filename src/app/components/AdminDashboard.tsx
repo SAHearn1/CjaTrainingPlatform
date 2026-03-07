@@ -56,10 +56,7 @@ interface AdminStatsData {
   activeLearners: number;
   completionRate: number;
   avgScore: number;
-  /** Role-based learner breakdown (field renamed from agencyBreakdown; backward compat via ?? below) */
-  roleBreakdown?: { name: string; learners: number; completion: number }[];
-  /** @deprecated Legacy key — server now sends roleBreakdown */
-  agencyBreakdown?: { name: string; learners: number; completion: number }[];
+  roleBreakdown: { name: string; learners: number; completion: number }[];
   moduleCompletion: { module: string; completed: number; inProgress: number; notStarted: number }[];
   monthlyEnrollment?: { month: string; enrolled: number }[];
   assessmentDistribution?: { range: string; count: number }[];
@@ -78,6 +75,7 @@ function AdminDashboardInner() {
   const { accessToken } = useAuth();
   const [activeTab, setActiveTab] = useState<"overview" | "roles" | "modules" | "learners">("overview");
   const [stats, setStats] = useState<AdminStatsData | null>(null);
+  const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -96,6 +94,11 @@ function AdminDashboardInner() {
       const res = await api.getAdminStats(accessToken);
       if (res.stats) {
         setStats(res.stats);
+        // Also load user list for the Learners tab
+        try {
+          const usersRes = await api.getAdminUsers(accessToken);
+          if (usersRes.users) setUsers(usersRes.users);
+        } catch {}
       } else {
         setError("The server returned no statistics data. Please try again.");
       }
@@ -139,7 +142,7 @@ function AdminDashboardInner() {
     );
   }
 
-  // Normalise score distribution key (server returns scoreDistribution, mock uses assessmentDistribution)
+  // Normalise field names for backward compatibility
   const scoreDistribution = stats.scoreDistribution || stats.assessmentDistribution || [];
   const monthlyEnrollment = stats.monthlyEnrollment || [];
   // Normalise role breakdown key (server sends roleBreakdown; older response shape sent agencyBreakdown)
@@ -359,7 +362,7 @@ function AdminDashboardInner() {
                 </tr>
               </thead>
               <tbody>
-                {roleBreakdown.map((entry) => (
+                {stats.roleBreakdown.map((entry) => (
                   <tr key={entry.name} className="border-b border-border hover:bg-secondary/50">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
@@ -473,46 +476,42 @@ function AdminDashboardInner() {
                 </tr>
               </thead>
               <tbody>
-                {[
-                  { name: "Sarah Johnson", role: "CPI", agency: "County CPS", progress: 100, score: 92, status: "Completed" },
-                  { name: "Michael Torres", role: "Law Enforcement", agency: "Metro PD", progress: 67, score: 85, status: "In Progress" },
-                  { name: "Dr. Amara Singh", role: "Medical", agency: "Regional Hospital", progress: 83, score: 91, status: "In Progress" },
-                  { name: "Jennifer Wu", role: "Prosecutor", agency: "DA Office", progress: 100, score: 88, status: "Completed" },
-                  { name: "Robert Davis", role: "School Personnel", agency: "School District", progress: 33, score: 76, status: "In Progress" },
-                  { name: "Maria Garcia", role: "Victim Advocate", agency: "Victim Services", progress: 100, score: 94, status: "Completed" },
-                  { name: "James Okoye", role: "Forensic Interviewer", agency: "CAC", progress: 50, score: 82, status: "In Progress" },
-                  { name: "Hon. Patricia Lane", role: "Judge", agency: "Family Court", progress: 100, score: 89, status: "Completed" },
-                ].map((learner) => (
-                  <tr key={learner.name} className="border-b border-border hover:bg-secondary/50">
+                {(users.length > 0 ? users : []).map((learner) => {
+                  const totalMods = 7;
+                  const pct = totalMods > 0 ? Math.round(((learner.completedModules || 0) / totalMods) * 100) : 0;
+                  const statusLabel = learner.completedModules >= totalMods ? "Completed" : learner.inProgressModules > 0 ? "In Progress" : "Not Started";
+                  return (
+                  <tr key={learner.userId} className="border-b border-border hover:bg-secondary/50">
                     <td className="p-4 text-sm">{learner.name}</td>
-                    <td className="p-4 text-sm text-muted-foreground">{learner.role}</td>
-                    <td className="p-4 text-sm text-muted-foreground">{learner.agency}</td>
+                    <td className="p-4 text-sm text-muted-foreground">{ROLE_LABELS[learner.role] || learner.role}</td>
+                    <td className="p-4 text-sm text-muted-foreground">{learner.agency || "—"}</td>
                     <td className="p-4">
                       <div className="flex items-center gap-2">
                         <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
                           <div
                             className="h-full rounded-full"
-                            style={{ width: `${learner.progress}%`, background: "#0D3B22" }}
+                            style={{ width: `${pct}%`, background: "#0D3B22" }}
                           />
                         </div>
-                        <span className="text-xs text-muted-foreground">{learner.progress}%</span>
+                        <span className="text-xs text-muted-foreground">{pct}%</span>
                       </div>
                     </td>
-                    <td className="p-4 text-sm">{learner.score}%</td>
+                    <td className="p-4 text-sm">{learner.postAssessmentScore != null ? learner.postAssessmentScore + "%" : "—"}</td>
                     <td className="p-4">
                       <span
                         className="px-2 py-1 rounded-full text-xs"
                         style={
-                          learner.status === "Completed"
+                          statusLabel === "Completed"
                             ? { background: hexAlpha("#0D3B22", 0.06), color: "#0D3B22" }
                             : { background: hexAlpha("#C9A84C", 0.1), color: "#8A6A10" }
                         }
                       >
-                        {learner.status}
+                        {statusLabel}
                       </span>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

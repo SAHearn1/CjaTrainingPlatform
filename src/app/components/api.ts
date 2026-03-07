@@ -148,3 +148,13 @@ export async function confirmLicense(token: string, sessionId: string) {
     body: JSON.stringify({ sessionId }),
   }, token);
 }
+
+export async function rootyChat(
+  token: string | null,
+  messages: Array<{ role: "user" | "assistant"; text: string }>
+): Promise<{ reply: string }> {
+  return request("/rooty/chat", {
+    method: "POST",
+    body: JSON.stringify({ messages }),
+  }, token);
+}
