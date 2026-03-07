@@ -767,7 +767,7 @@ export function Landing() {
       </header>
 
       {/* ─── Hero ─── */}
-      <div className="relative overflow-hidden bg-primary">
+      <div className="relative overflow-hidden" style={{ background: "#082A19" }}>
         <div className="absolute inset-0 opacity-10">
           <ImageWithFallback
             src="https://images.unsplash.com/photo-1758691736067-b309ee3ef7b9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjB0cmFpbmluZyUyMGNsYXNzcm9vbSUyMGxlYXJuaW5nfGVufDF8fHx8MTc3MjgxOTU1MHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
@@ -1077,7 +1077,7 @@ export function Landing() {
         </section>
 
         {/* ── Methodology ── */}
-        <section className="py-14" style={{ background: "var(--primary)" }}>
+        <section className="py-14" style={{ background: "#082A19" }}>
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div
               initial={{ opacity: 0, y: 24 }}
