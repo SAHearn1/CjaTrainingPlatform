@@ -80,6 +80,7 @@
 /* Force light mode on the landing page regardless of user theme preference */
 .landing-light {
   color-scheme: light;
+  color: #1A1A1A;
   --background: #F8F9F2;
   --foreground: #1A1A1A;
   --card: #FFFFFF;
