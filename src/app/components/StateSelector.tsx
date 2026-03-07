@@ -559,7 +559,7 @@ export function StateComparisonCard({ stateAbbrev }: StateComparisonCardProps) {
           <span className="ml-auto text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-800 font-bold">Universal Reporter State</span>
         )}
         {isGA && (
-          <span className="ml-auto text-xs px-2 py-1 rounded-full font-bold" style={{ background: "#082A19", color: "#C9A84C" }}>Training Baseline</span>
+          <span className="ml-auto text-xs px-2 py-1 rounded-full font-bold" style={{ background: "#C9A84C", color: "#082A19" }}>Training Baseline</span>
         )}
       </div>
 
@@ -593,7 +593,7 @@ export function StateComparisonCard({ stateAbbrev }: StateComparisonCardProps) {
           <ul className="space-y-1.5">
             {info.gaComparison.map((diff, i) => (
               <li key={i} className="flex items-start gap-2 text-xs">
-                <span className="mt-1 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#1C4D36" }} />
+                <span className="mt-1 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#C9A84C" }} />
                 {diff}
               </li>
             ))}

@@ -171,7 +171,7 @@ export function InstructorDashboard() {
                           style={
                             statusLabel === "Completed"
                               ? { background: hexAlpha("#0D3B22", 0.06), color: "#0D3B22" }
-                              : { background: hexAlpha("#0D3B22", 0.06), color: "#0D3B22" }
+                              : { background: hexAlpha("#C9A84C", 0.1), color: "#8A6A10" }
                           }
                         >
                           {statusLabel}

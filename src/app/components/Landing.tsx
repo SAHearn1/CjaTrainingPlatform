@@ -757,7 +757,7 @@ export function Landing() {
             <button
               onClick={() => openAuth("signup")}
               className="px-4 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-90"
-              style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}
+              style={{ background: "#C9A84C", color: "#082A19" }}
             >
               <span className="hidden sm:inline"><UserPlus className="w-3 h-3 inline mr-1 -mt-0.5" /></span>
               Sign Up
@@ -812,7 +812,7 @@ export function Landing() {
             <motion.button
               onClick={scrollToGetStarted}
               className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-all hover:opacity-90"
-              style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}
+              style={{ background: "#C9A84C", color: "#082A19" }}
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
             >
@@ -836,7 +836,7 @@ export function Landing() {
               <div
                 key={i}
                 className="backdrop-blur-sm rounded-xl p-4 text-center"
-                style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)" }}
+                style={{ background: "rgba(201,168,76,0.1)", border: "1px solid rgba(201,168,76,0.25)" }}
               >
                 <div className="flex justify-center mb-2" style={{ color: "#C9A84C" }}>{stat.icon}</div>
                 <div className="text-sm" style={{ color: "#C9A84C" }}>{stat.label}</div>
@@ -916,7 +916,7 @@ export function Landing() {
                 className="bg-card rounded-xl border border-border p-6 flex flex-col"
               >
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-4"
-                  style={{ background: "rgba(8,42,25,0.08)", color: "var(--gold-text)" }}
+                  style={{ background: "rgba(201,168,76,0.12)", color: "var(--gold-text)" }}
                 >
                   {card.icon}
                 </div>
@@ -988,9 +988,9 @@ export function Landing() {
                         viewport={{ once: true }}
                         transition={{ duration: 0.3, delay: i * 0.07 + 0.2 }}
                         className="flex items-center"
-                        style={{ color: "var(--muted-foreground)" }}
+                        style={{ color: "#C9A84C" }}
                       >
-                        <div className="w-4 sm:w-6 h-0.5" style={{ background: "var(--border)" }} />
+                        <div className="w-4 sm:w-6 h-0.5" style={{ background: "#C9A84C" }} />
                         <ArrowRight className="w-3.5 h-3.5 -ml-1" />
                       </motion.div>
                     </div>
@@ -1003,9 +1003,9 @@ export function Landing() {
                         whileInView={{ opacity: 1 }}
                         viewport={{ once: true }}
                         className="flex flex-col items-center"
-                        style={{ color: "var(--muted-foreground)" }}
+                        style={{ color: "#C9A84C" }}
                       >
-                        <div className="w-0.5 h-4" style={{ background: "var(--border)" }} />
+                        <div className="w-0.5 h-4" style={{ background: "#C9A84C" }} />
                         <ChevronDown className="w-3.5 h-3.5 -mt-0.5" />
                       </motion.div>
                     </div>
@@ -1023,9 +1023,9 @@ export function Landing() {
               className="text-center mt-6"
             >
               <p className="text-xs text-muted-foreground italic flex items-center justify-center gap-2">
-                <span className="w-8 h-0.5 rounded-full" style={{ background: "var(--border)" }} />
+                <span className="w-8 h-0.5 rounded-full" style={{ background: "rgba(201,168,76,0.3)" }} />
                 The cycle deepens with each investigation
-                <span className="w-8 h-0.5 rounded-full" style={{ background: "var(--border)" }} />
+                <span className="w-8 h-0.5 rounded-full" style={{ background: "rgba(201,168,76,0.3)" }} />
               </p>
             </motion.div>
           </div>
@@ -1114,7 +1114,7 @@ export function Landing() {
                   viewport={{ once: true, margin: "-40px" }}
                   transition={{ duration: 0.45, delay: i * 0.06 }}
                   className="rounded-xl p-6 flex flex-col"
-                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}
+                  style={{ background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.18)" }}
                 >
                   <h3 className="text-sm font-semibold mb-2" style={{ color: "#C9A84C" }}>{card.title}</h3>
                   <p className="text-xs leading-relaxed flex-1" style={{ color: "rgba(242,244,202,0.6)" }}>{card.body}</p>

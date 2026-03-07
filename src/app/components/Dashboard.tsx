@@ -67,7 +67,7 @@ export function Dashboard() {
           { icon: BookOpen, label: "Completed", value: `${completedModules}/7`, sub: "modules", bg: "rgba(13,59,34,0.08)", fg: "#0D3B22" },
           { icon: PlayCircle, label: "In Progress", value: inProgressModules.toString(), sub: "modules", bg: "rgba(28,77,54,0.08)", fg: "#1C4D36" },
           { icon: Clock, label: "Time Invested", value: `${Math.round(totalTime / 60)}h ${totalTime % 60}m`, sub: "total", bg: "rgba(30,58,95,0.08)", fg: "#1E3A5F" },
-          { icon: Trophy, label: "Avg Score", value: `${Math.round(avgScore)}%`, sub: "post-assessment", bg: "rgba(8,42,25,0.08)", fg: "#0D3B22" },
+          { icon: Trophy, label: "Avg Score", value: `${Math.round(avgScore)}%`, sub: "post-assessment", bg: "rgba(201,168,76,0.12)", fg: "#8A6A10" },
         ].map((stat, i) => (
           <motion.div
             key={i}
@@ -272,7 +272,7 @@ export function Dashboard() {
                       <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all"
-                          style={{ width: `${pct}%`, background: progress?.status === "completed" ? "#0D3B22" : "#1C4D36" }}
+                          style={{ width: `${pct}%`, background: progress?.status === "completed" ? "#0D3B22" : "#C9A84C" }}
                         />
                       </div>
                       <span className="text-xs text-muted-foreground w-8 text-right">{pct}%</span>

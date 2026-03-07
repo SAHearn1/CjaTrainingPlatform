@@ -487,7 +487,7 @@ export function LegalFooter({ variant = "full" }: { variant?: "full" | "compact"
           <div className="flex items-center gap-3">
             <div
               className="w-9 h-9 rounded-lg flex items-center justify-center"
-              style={{ background: "rgba(255,255,255,0.08)" }}
+              style={{ background: "rgba(201,168,76,0.15)" }}
             >
               <ShieldCheck className="w-5 h-5" style={{ color: "#C9A84C" }} />
             </div>
@@ -503,11 +503,11 @@ export function LegalFooter({ variant = "full" }: { variant?: "full" | "compact"
 
           {/* Compliance badges */}
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: "rgba(255,255,255,0.06)" }}>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: "rgba(201,168,76,0.08)" }}>
               <ShieldCheck className="w-3.5 h-3.5" style={{ color: "#C9A84C" }} />
               <span className="text-[10px] font-medium" style={{ color: "#C9A84C" }}>CJIS Compliant</span>
             </div>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: "rgba(255,255,255,0.06)" }}>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: "rgba(201,168,76,0.08)" }}>
               <Lock className="w-3.5 h-3.5" style={{ color: "#C9A84C" }} />
               <span className="text-[10px] font-medium" style={{ color: "#C9A84C" }}>AES-256</span>
             </div>

@@ -214,7 +214,7 @@ export function Licensing() {
       >
         <div
           className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium mb-4"
-          style={{ backgroundColor: "rgba(8,42,25,0.08)", color: "var(--evergreen)" }}
+          style={{ backgroundColor: "rgba(201,168,76,0.12)", color: "var(--gold-text)" }}
         >
           <Shield className="w-4 h-4" />
           Secure Stripe Payment Processing
@@ -240,8 +240,8 @@ export function Licensing() {
             exit={{ opacity: 0, y: -10 }}
             className="mb-8 p-4 rounded-lg border flex items-center gap-3"
             style={{
-              borderColor: "var(--border)",
-              backgroundColor: "rgba(8,42,25,0.04)",
+              borderColor: "var(--gold-leaf)",
+              backgroundColor: "rgba(201,168,76,0.08)",
             }}
           >
             <AlertCircle className="w-5 h-5 flex-shrink-0" style={{ color: "var(--gold-leaf)" }} />
@@ -317,7 +317,7 @@ export function Licensing() {
                   ? "var(--mid-green)"
                   : "var(--border)",
                 backgroundColor: isSelected
-                  ? "rgba(8,42,25,0.04)"
+                  ? "rgba(201,168,76,0.04)"
                   : "var(--card)",
               }}
             >
@@ -489,7 +489,7 @@ export function Licensing() {
           >
             <div
               className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: "rgba(8,42,25,0.08)", color: "var(--evergreen)" }}
+              style={{ backgroundColor: "rgba(201,168,76,0.15)", color: "var(--gold-text)" }}
             >
               {item.icon}
             </div>

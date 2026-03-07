@@ -46,7 +46,7 @@ interface ManagedUser {
 const TIER_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   learner: { bg: "rgba(13,59,34,0.06)", text: "#0D3B22", border: "rgba(13,59,34,0.15)" },
   supervisor: { bg: "rgba(30,58,95,0.06)", text: "#1E3A5F", border: "rgba(30,58,95,0.15)" },
-  admin: { bg: "rgba(8,42,25,0.08)", text: "#082A19", border: "rgba(8,42,25,0.2)" },
+  admin: { bg: "rgba(201,168,76,0.08)", text: "#8B7325", border: "rgba(201,168,76,0.25)" },
   superadmin: { bg: "rgba(92,50,0,0.06)", text: "#5C3200", border: "rgba(92,50,0,0.2)" },
 };
 
@@ -403,7 +403,7 @@ function UserManagementInner() {
                               <span>{user.completedModules} completed</span>
                             </div>
                             <div className="flex items-center gap-2 text-xs">
-                              <div className="w-2 h-2 rounded-full" style={{ background: "#1C4D36" }} />
+                              <div className="w-2 h-2 rounded-full" style={{ background: "#C9A84C" }} />
                               <span>{user.inProgressModules} in progress</span>
                             </div>
                             <div className="flex items-center gap-2 text-xs">
@@ -415,7 +415,7 @@ function UserManagementInner() {
                           {/* Role Change Section */}
                           <div
                             className="mt-4 rounded-lg p-4"
-                            style={{ background: "rgba(8,42,25,0.04)", border: "1px solid rgba(8,42,25,0.12)" }}
+                            style={{ background: "rgba(201,168,76,0.04)", border: "1px solid rgba(201,168,76,0.12)" }}
                           >
                             <div className="flex items-center gap-2 mb-3">
                               <Shield className="w-4 h-4" style={{ color: "#C9A84C" }} />
@@ -520,7 +520,7 @@ function UserManagementInner() {
               <div className="flex items-center gap-3 mb-4">
                 <div
                   className="w-12 h-12 rounded-xl flex items-center justify-center"
-                  style={{ background: "rgba(8,42,25,0.08)" }}
+                  style={{ background: "rgba(201,168,76,0.1)" }}
                 >
                   <Shield className="w-6 h-6" style={{ color: "#C9A84C" }} />
                 </div>
@@ -543,7 +543,7 @@ function UserManagementInner() {
                     </p>
                   </div>
                   <span className="text-muted-foreground">&rarr;</span>
-                  <div className="flex-1 rounded-lg p-3" style={{ background: "rgba(8,42,25,0.06)" }}>
+                  <div className="flex-1 rounded-lg p-3" style={{ background: "rgba(201,168,76,0.06)" }}>
                     <p className="text-xs text-muted-foreground mb-1">To</p>
                     <p className="text-sm font-semibold" style={{ color: "#0D3B22" }}>
                       {ROLE_LABELS[confirmDialog.newRole] || confirmDialog.newRole}
