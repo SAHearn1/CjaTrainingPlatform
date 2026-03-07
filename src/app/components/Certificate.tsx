@@ -106,7 +106,7 @@ export function Certificate() {
           </h2>
 
           {/* Main Certificate — Evergreen + Gold design */}
-          <div className="bg-card rounded-2xl overflow-hidden mb-6" style={{ border: "2px solid rgba(201,168,76,0.3)" }}>
+          <div id="certificate-printable" className="bg-card rounded-2xl overflow-hidden mb-6" style={{ border: "2px solid rgba(201,168,76,0.3)" }}>
             <div className="p-8 sm:p-12 text-center" style={{ background: "rgba(8,42,25,0.03)" }}>
               <div className="max-w-lg mx-auto">
                 <div className="rounded-xl p-8 bg-white" style={{ border: "2px solid rgba(201,168,76,0.3)" }}>
@@ -128,7 +128,7 @@ export function Certificate() {
                   <p className="text-xs text-muted-foreground mb-1">This certifies that</p>
                   <p className="text-xl text-foreground mb-1" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>{displayName}</p>
                   <p className="text-sm text-muted-foreground mb-6">
-                    {roleLabels[displayRole] || displayRole}
+                    {ROLE_LABELS[displayRole] || displayRole}
                   </p>
 
                   <p className="text-xs text-muted-foreground mb-4">
@@ -162,8 +162,11 @@ export function Certificate() {
               </div>
             </div>
 
-            <div className="p-4 flex justify-center gap-3 border-t border-border">
-              <button className="px-5 py-2.5 bg-primary text-primary-foreground rounded-full text-sm hover:opacity-90 flex items-center gap-2">
+            <div className="p-4 flex justify-center gap-3 border-t border-border print:hidden">
+              <button
+                onClick={() => window.print()}
+                className="px-5 py-2.5 bg-primary text-primary-foreground rounded-full text-sm hover:opacity-90 flex items-center gap-2"
+              >
                 <Download className="w-4 h-4" /> Download PDF
               </button>
               <button className="px-5 py-2.5 border border-border rounded-full text-sm hover:bg-secondary flex items-center gap-2">

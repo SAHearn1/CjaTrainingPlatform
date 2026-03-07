@@ -583,7 +583,7 @@ app.get("/make-server-39a35780/admin/stats", async (c) => {
       roleStats[role].totalModules += userProgress.length;
       roleStats[role].completedModules += userProgress.filter((pr: any) => pr.status === "completed").length;
     });
-    const agencyBreakdown = Object.entries(roleStats).map(([role, data]) => ({
+    const roleBreakdown = Object.entries(roleStats).map(([role, data]) => ({
       name: role,
       learners: data.learners,
       completion: data.totalModules > 0 ? Math.round((data.completedModules / data.totalModules) * 100) : 0,
@@ -597,7 +597,7 @@ app.get("/make-server-39a35780/admin/stats", async (c) => {
         avgScore,
         moduleCompletion,
         scoreDistribution,
-        agencyBreakdown,
+        roleBreakdown,
       },
     });
   } catch (e) {

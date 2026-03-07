@@ -242,3 +242,31 @@
   ::-webkit-scrollbar-thumb { background: rgba(201,168,76,0.4); border-radius: 3px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--gold-leaf); }
 }
+
+/* ─── Print / PDF export styles ──────────────────────────────────────────── */
+@media print {
+  /* Hide everything except the certificate card */
+  body > * { display: none !important; }
+  #root { display: block !important; }
+  #root > * { display: none !important; }
+  #certificate-printable { display: block !important; }
+
+  /* Reset page margins and ensure white background */
+  @page {
+    size: A4 landscape;
+    margin: 1.5cm;
+  }
+
+  body {
+    background: #fff !important;
+    color: #1A1A1A !important;
+  }
+
+  /* Ensure the certificate card fills the page cleanly */
+  #certificate-printable {
+    border: 2px solid rgba(201,168,76,0.3) !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}
