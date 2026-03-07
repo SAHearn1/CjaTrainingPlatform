@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { MODULES } from "./data";
 import {
   BookOpen,
@@ -10,6 +10,8 @@ import {
   PlayCircle,
   Circle,
   Target,
+  ClipboardCheck,
+  Lock,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { TTSControls } from "./TTSControls";
@@ -31,7 +33,14 @@ const TRACE_COLORS = [
 
 export function Dashboard() {
   const { profile, progress: userProgress } = useAuth();
+  const navigate = useNavigate();
   const displayName = profile?.name || "Learner";
+
+  // Find the first module the user hasn't taken a pre-assessment for
+  const firstUnassessed = MODULES.find(
+    (m) => !userProgress.find((p) => p.moduleId === m.id && p.preAssessmentScore != null)
+  );
+  const isNewUser = userProgress.every((p) => p.preAssessmentScore == null) || userProgress.length === 0;
 
   const completedModules = userProgress.filter((p) => p.status === "completed").length;
   const inProgressModules = userProgress.filter((p) => p.status === "in_progress").length;
@@ -87,6 +96,43 @@ export function Dashboard() {
           </motion.div>
         ))}
       </div>
+
+      {/* Pre-assessment CTA — shown until user has completed at least one pre-assessment */}
+      {firstUnassessed && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="mb-8 rounded-2xl overflow-hidden border-2"
+          style={{ borderColor: "#1E3A5F" }}
+        >
+          <div className="px-6 py-5 flex flex-col sm:flex-row items-start sm:items-center gap-4" style={{ background: "rgba(30,58,95,0.06)" }}>
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(30,58,95,0.12)" }}>
+              {isNewUser ? <ClipboardCheck className="w-6 h-6" style={{ color: "#1E3A5F" }} /> : <Lock className="w-6 h-6" style={{ color: "#1E3A5F" }} />}
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold mb-0.5" style={{ color: "#1E3A5F" }}>
+                {isNewUser ? "Start Here: Complete Your First Pre-Assessment" : `Next: Pre-Assessment for Module ${firstUnassessed.id}`}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {isNewUser
+                  ? "Pre-assessments establish your baseline knowledge and unlock module content. Begin with Module 1 to get started."
+                  : `Complete the pre-assessment for "${firstUnassessed.title}" to unlock its content.`
+                }
+              </p>
+            </div>
+            <button
+              onClick={() => navigate(`/modules/${firstUnassessed.id}/assessment/pre`)}
+              className="shrink-0 px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 whitespace-nowrap"
+              style={{ background: "#1E3A5F", color: "white" }}
+            >
+              <ClipboardCheck className="w-4 h-4" />
+              {isNewUser ? "Begin Pre-Assessment" : `Module ${firstUnassessed.id} Pre-Assessment`}
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </motion.div>
+      )}
 
       {/* RootWork Framework + TRACE */}
       <div className="grid lg:grid-cols-2 gap-6 mb-8">

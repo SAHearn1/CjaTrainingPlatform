@@ -17,6 +17,7 @@ import {
   Lightbulb,
   Bookmark,
   Film,
+  Lock,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { TTSControls, InlineTTSButton } from "./TTSControls";
@@ -123,6 +124,8 @@ export function ModuleDetail() {
   const pct = Math.round((completedSections / totalSections) * 100);
 
   const preScore = progress?.preAssessmentScore;
+  const preAssessmentDone = preScore != null;
+  const simCompleted = (progress?.scenariosCompleted?.length || 0) > 0;
   // Personalization: suggest focused sections when pre-assessment score is low
   const personalizationTip = preScore != null
     ? preScore >= 80
@@ -132,29 +135,136 @@ export function ModuleDetail() {
       : "Complete each section carefully — your pre-assessment indicates this content will be new. Take notes in the Reflection prompts as you go."
     : null;
 
-  function handleDownloadSection(section: (typeof module.sections)[0]) {
-    let content = `RootWork Training — Module ${module.id}: ${module.title}\n`;
-    content += `Section: ${section.phase} — ${section.title}\n`;
-    content += `${"=".repeat(60)}\n\n`;
-    content += `${section.description}\n\n`;
-    content += `KEY CONCEPTS\n${"-".repeat(40)}\n`;
+  async function handleDownloadSection(section: (typeof module.sections)[0]) {
+    const { jsPDF } = await import("jspdf");
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "letter" });
+
+    const EVERGREEN = [8, 42, 25] as const;
+    const GOLD = [201, 168, 76] as const;
+    const CANVAS = [242, 244, 202] as const;
+    const WHITE = [255, 255, 255] as const;
+    const DARK = [26, 26, 26] as const;
+    const MUTED = [100, 100, 100] as const;
+
+    const pw = doc.internal.pageSize.getWidth();
+    const ph = doc.internal.pageSize.getHeight();
+
+    // Header bar
+    doc.setFillColor(...EVERGREEN);
+    doc.rect(0, 0, pw, 28, "F");
+
+    // Gold accent line
+    doc.setFillColor(...GOLD);
+    doc.rect(0, 28, pw, 2, "F");
+
+    // Title text in header
+    doc.setTextColor(...GOLD);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("RootWork Framework™", 14, 12);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...CANVAS);
+    doc.text("Trauma-Informed Investigation Training Platform", 14, 19);
+    doc.text(`Module ${module.id}: ${module.title}`, 14, 25);
+
+    // Module badge (right side)
+    doc.setFillColor(...GOLD);
+    doc.roundedRect(pw - 44, 6, 36, 16, 3, 3, "F");
+    doc.setTextColor(...EVERGREEN);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.text(`MODULE ${module.id}`, pw - 26, 12, { align: "center" });
+    doc.setFontSize(7);
+    doc.text(section.phase.toUpperCase(), pw - 26, 18, { align: "center" });
+
+    // Section title
+    doc.setFillColor(248, 250, 242);
+    doc.rect(0, 30, pw, 22, "F");
+    doc.setTextColor(...EVERGREEN);
+    doc.setFontSize(13);
+    doc.setFont("helvetica", "bold");
+    doc.text(section.title, 14, 41);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...MUTED);
+    doc.text(section.description, 14, 49, { maxWidth: pw - 28 });
+
+    let y = 62;
+
+    // Key Concepts section
+    doc.setFillColor(...EVERGREEN);
+    doc.rect(14, y, 4, section.content.length * 10 + 8, "F");
+    doc.setFillColor(248, 250, 242);
+    doc.rect(18, y, pw - 32, section.content.length * 10 + 8, "F");
+
+    doc.setTextColor(...EVERGREEN);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text("KEY CONCEPTS", 22, y + 7);
+    y += 14;
+
     section.content.forEach((point, i) => {
-      content += `${i + 1}. ${point}\n`;
+      if (y > ph - 30) { doc.addPage(); y = 20; }
+      doc.setFillColor(...GOLD);
+      doc.circle(25, y - 1.5, 2, "F");
+      doc.setTextColor(...DARK);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      const lines = doc.splitTextToSize(`${i + 1}.  ${point}`, pw - 50);
+      doc.text(lines, 32, y);
+      y += lines.length * 5 + 3;
     });
+
+    y += 6;
+
+    // Key Terms section
     if (section.keyTerms && section.keyTerms.length > 0) {
-      content += `\nKEY TERMS\n${"-".repeat(40)}\n`;
+      if (y > ph - 60) { doc.addPage(); y = 20; }
+
+      doc.setFillColor(...GOLD);
+      doc.rect(14, y, pw - 28, 10, "F");
+      doc.setTextColor(...EVERGREEN);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.text("KEY TERMS & DEFINITIONS", 18, y + 7);
+      y += 14;
+
       section.keyTerms.forEach((kt) => {
-        content += `${kt.term}: ${kt.definition}\n`;
+        if (y > ph - 30) { doc.addPage(); y = 20; }
+        doc.setFillColor(248, 250, 242);
+        const defLines = doc.splitTextToSize(kt.definition, pw - 60);
+        const blockH = 8 + defLines.length * 4.5;
+        doc.roundedRect(14, y - 4, pw - 28, blockH, 2, 2, "F");
+        doc.setTextColor(...EVERGREEN);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.text(kt.term, 18, y + 1);
+        doc.setTextColor(...DARK);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8.5);
+        doc.text(defLines, 18, y + 6);
+        y += blockH + 4;
       });
     }
-    content += `\n${"=".repeat(60)}\n© RootWork Training Platform — For authorized training use only\n`;
-    const blob = new Blob([content], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `Module${module.id}_${section.phase}_Reference.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+
+    // Footer on every page
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFillColor(...EVERGREEN);
+      doc.rect(0, ph - 14, pw, 14, "F");
+      doc.setFillColor(...GOLD);
+      doc.rect(0, ph - 14, pw, 1.5, "F");
+      doc.setTextColor(...CANVAS);
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      doc.text("© RootWork Framework™ Training Platform — For authorized training use only. GALS × RWFW.", 14, ph - 6);
+      doc.setTextColor(...GOLD);
+      doc.text(`Page ${i} of ${pageCount}`, pw - 14, ph - 6, { align: "right" });
+    }
+
+    doc.save(`RootWork_Module${module.id}_${section.phase}_Reference.pdf`);
   }
 
   const buildModuleOverviewTTS = () => {
@@ -253,20 +363,36 @@ export function ModuleDetail() {
           </div>
         </button>
         {module.scenarios.length > 0 && (
-          <button onClick={() => navigate(`/modules/${module.id}/simulation`)} className="bg-card rounded-xl border border-border p-4 hover:shadow-md transition-all text-left flex items-start gap-3 group">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-colors" style={{ background: hexAlpha(ACTION_BUTTONS.sim.hex, 0.08) }}>
-              <Gamepad2 className="w-5 h-5" style={{ color: ACTION_BUTTONS.sim.hex }} />
+          <button
+            onClick={() => preAssessmentDone && navigate(`/modules/${module.id}/simulation`)}
+            className={`bg-card rounded-xl border border-border p-4 text-left flex items-start gap-3 group transition-all ${preAssessmentDone ? "hover:shadow-md cursor-pointer" : "opacity-50 cursor-not-allowed"}`}
+          >
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-colors relative" style={{ background: hexAlpha(ACTION_BUTTONS.sim.hex, 0.08) }}>
+              {!preAssessmentDone
+                ? <Lock className="w-5 h-5" style={{ color: ACTION_BUTTONS.sim.hex }} />
+                : <Gamepad2 className="w-5 h-5" style={{ color: ACTION_BUTTONS.sim.hex }} />
+              }
             </div>
-            <div><p className="text-sm">Scenario Simulation</p><p className="text-xs text-muted-foreground">Interactive TRACE exercises</p></div>
+            <div>
+              <p className="text-sm">Scenario Simulation</p>
+              <p className="text-xs text-muted-foreground">{preAssessmentDone ? "Interactive TRACE exercises" : "Complete pre-assessment to unlock"}</p>
+              {simCompleted && <p className="text-xs mt-1 flex items-center gap-1" style={{ color: ACTION_BUTTONS.sim.hex }}><CheckCircle2 className="w-3 h-3" /> Completed</p>}
+            </div>
           </button>
         )}
-        <button onClick={() => navigate(`/modules/${module.id}/assessment/post`)} className="bg-card rounded-xl border border-border p-4 hover:shadow-md transition-all text-left flex items-start gap-3 group">
+        <button
+          onClick={() => preAssessmentDone && navigate(`/modules/${module.id}/assessment/post`)}
+          className={`bg-card rounded-xl border border-border p-4 text-left flex items-start gap-3 group transition-all ${preAssessmentDone ? "hover:shadow-md cursor-pointer" : "opacity-50 cursor-not-allowed"}`}
+        >
           <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-colors" style={{ background: hexAlpha(ACTION_BUTTONS.post.hex, 0.08) }}>
-            <CheckCircle2 className="w-5 h-5" style={{ color: ACTION_BUTTONS.post.hex }} />
+            {!preAssessmentDone
+              ? <Lock className="w-5 h-5" style={{ color: ACTION_BUTTONS.post.hex }} />
+              : <CheckCircle2 className="w-5 h-5" style={{ color: ACTION_BUTTONS.post.hex }} />
+            }
           </div>
           <div>
             <p className="text-sm">Post-Assessment</p>
-            <p className="text-xs text-muted-foreground">Competency evaluation</p>
+            <p className="text-xs text-muted-foreground">{preAssessmentDone ? "Competency evaluation" : "Complete pre-assessment to unlock"}</p>
             {progress?.postAssessmentScore != null && <p className="text-xs mt-1" style={{ color: ACTION_BUTTONS.post.hex }}>Score: {progress.postAssessmentScore}%</p>}
           </div>
         </button>
@@ -300,6 +426,33 @@ export function ModuleDetail() {
         </motion.div>
       )}
 
+      {/* Pre-assessment gate banner */}
+      {!preAssessmentDone && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 rounded-xl border-2 overflow-hidden"
+          style={{ borderColor: "#1E3A5F" }}
+        >
+          <div className="px-5 py-4 flex items-start gap-4" style={{ background: "rgba(30,58,95,0.06)" }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(30,58,95,0.12)" }}>
+              <Lock className="w-5 h-5" style={{ color: "#1E3A5F" }} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold mb-1" style={{ color: "#1E3A5F" }}>Complete the Pre-Assessment to Unlock This Module</p>
+              <p className="text-xs text-muted-foreground mb-3">The pre-assessment establishes your baseline knowledge and personalizes your learning path. It must be completed before accessing module content.</p>
+              <button
+                onClick={() => navigate(`/modules/${module.id}/assessment/pre`)}
+                className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"
+                style={{ background: "#1E3A5F", color: "white" }}
+              >
+                <ClipboardCheck className="w-4 h-4" /> Start Pre-Assessment <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Learning Sections */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
         <h2 className="mb-4 flex items-center gap-2"><BookOpen className="w-5 h-5 text-primary" /> Learning Sections</h2>
@@ -321,7 +474,7 @@ export function ModuleDetail() {
                   boxShadow: isExpanded ? `0 4px 12px ${hexAlpha(hex, 0.1)}` : undefined,
                 }}
               >
-                <button onClick={() => toggleSection(section.id)} className="w-full p-4 flex items-center gap-4 text-left">
+                <button onClick={() => preAssessmentDone && toggleSection(section.id)} className={`w-full p-4 flex items-center gap-4 text-left ${!preAssessmentDone ? "opacity-50 cursor-not-allowed" : ""}`}>
                   <div
                     className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
                     style={
