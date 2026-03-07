@@ -479,7 +479,7 @@ export function LegalFooter({ variant = "full" }: { variant?: "full" | "compact"
   return (
     <footer
       className="py-8 px-6"
-      style={{ background: "var(--primary)" }}
+      style={{ background: "#082A19" }}
     >
       <div className="max-w-6xl mx-auto">
         {/* Top: Brand + Compliance */}
