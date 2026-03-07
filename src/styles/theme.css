@@ -77,6 +77,32 @@
   --shadow-gold: 0 4px 20px rgba(201,168,76,0.25);
 }
 
+/* Force light mode on the landing page regardless of user theme preference */
+.landing-light {
+  color-scheme: light;
+  --background: #F8F9F2;
+  --foreground: #1A1A1A;
+  --card: #FFFFFF;
+  --card-foreground: #1A1A1A;
+  --popover: #FFFFFF;
+  --popover-foreground: #1A1A1A;
+  --primary: #082A19;
+  --primary-foreground: #C9A84C;
+  --secondary: #F0F4F0;
+  --secondary-foreground: #082A19;
+  --muted: #E4E8E4;
+  --muted-foreground: #666666;
+  --accent: rgba(201,168,76,0.12);
+  --accent-foreground: #082A19;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #E4E8E4;
+  --input: transparent;
+  --input-background: #F0F4F0;
+  --ring: #C9A84C;
+  --gold-text: #7A5C00;
+}
+
 .dark h1,
 .dark h2,
 .dark h3,
