@@ -9,7 +9,7 @@ import { TraceIcon, TRACE_ORDER, TRACE_LABELS } from "./TraceIcon";
 import { projectId, publicAnonKey } from "/utils/supabase/info";
 import { LegalFooter, PasswordStrengthMeter } from "./SecurityBadge";
 
-import rootworkLogo from "figma:asset/a7451b8754b38b4e147c6c6ed4971ae0d0e5389f.png";
+import rootworkLogo from "@/assets/a7451b8754b38b4e147c6c6ed4971ae0d0e5389f.png";
 
 import {
   Shield,

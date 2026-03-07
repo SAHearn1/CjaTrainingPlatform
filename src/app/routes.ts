@@ -1,18 +1,21 @@
+import { lazy } from "react";
 import { createBrowserRouter } from "react-router";
 import { Landing } from "./components/Landing";
 import { Layout } from "./components/Layout";
-import { Dashboard } from "./components/Dashboard";
-import { ModuleList } from "./components/ModuleList";
-import { ModuleDetail } from "./components/ModuleDetail";
-import { Assessment } from "./components/Assessment";
-import { Simulation } from "./components/Simulation";
-import { Certificate } from "./components/Certificate";
-import { AdminDashboard } from "./components/AdminDashboard";
-import { Licensing } from "./components/Licensing";
-import { LicensingSuccess } from "./components/LicensingSuccess";
 import { RootWrapper } from "./components/RootWrapper";
-import { UserManagement } from "./components/UserManagement";
-import { AuditLog } from "./components/AuditLog";
+
+// Lazy-loaded route components for code splitting
+const Dashboard = lazy(() => import("./components/Dashboard").then(m => ({ default: m.Dashboard })));
+const ModuleList = lazy(() => import("./components/ModuleList").then(m => ({ default: m.ModuleList })));
+const ModuleDetail = lazy(() => import("./components/ModuleDetail").then(m => ({ default: m.ModuleDetail })));
+const Assessment = lazy(() => import("./components/Assessment").then(m => ({ default: m.Assessment })));
+const Simulation = lazy(() => import("./components/Simulation").then(m => ({ default: m.Simulation })));
+const Certificate = lazy(() => import("./components/Certificate").then(m => ({ default: m.Certificate })));
+const AdminDashboard = lazy(() => import("./components/AdminDashboard").then(m => ({ default: m.AdminDashboard })));
+const Licensing = lazy(() => import("./components/Licensing").then(m => ({ default: m.Licensing })));
+const LicensingSuccess = lazy(() => import("./components/LicensingSuccess").then(m => ({ default: m.LicensingSuccess })));
+const UserManagement = lazy(() => import("./components/UserManagement").then(m => ({ default: m.UserManagement })));
+const AuditLog = lazy(() => import("./components/AuditLog").then(m => ({ default: m.AuditLog })));
 
 export const router = createBrowserRouter([
   {
