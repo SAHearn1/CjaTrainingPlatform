@@ -50,7 +50,7 @@ export function ModuleList() {
             { icon: FileText, label: "Post-Assessment", desc: "Competency evaluation" },
           ].map((item, i) => (
             <div key={i} className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(201,168,76,0.12)" }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(8,42,25,0.08)" }}>
                 <item.icon className="w-4 h-4" style={{ color: "#082A19" }} />
               </div>
               <div>
@@ -89,9 +89,9 @@ export function ModuleList() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between">
                     <span className="px-2 py-0.5 rounded-full text-xs backdrop-blur-sm" style={{
-                      background: progress?.status === "completed" ? "rgba(13,59,34,0.3)" : progress?.status === "in_progress" ? "rgba(201,168,76,0.2)" : "rgba(255,255,255,0.1)",
+                      background: progress?.status === "completed" ? "rgba(13,59,34,0.3)" : progress?.status === "in_progress" ? "rgba(28,77,54,0.3)" : "rgba(255,255,255,0.1)",
                       color: progress?.status === "completed" ? "#C9A84C" : progress?.status === "in_progress" ? "#E8D484" : "rgba(255,255,255,0.7)",
-                      border: `1px solid ${progress?.status === "completed" ? "rgba(201,168,76,0.4)" : progress?.status === "in_progress" ? "rgba(201,168,76,0.3)" : "rgba(255,255,255,0.2)"}`,
+                      border: `1px solid ${progress?.status === "completed" ? "rgba(13,59,34,0.4)" : progress?.status === "in_progress" ? "rgba(28,77,54,0.4)" : "rgba(255,255,255,0.2)"}`,
                     }}>
                       {progress?.status === "completed" ? "Completed" : progress?.status === "in_progress" ? "In Progress" : "Not Started"}
                     </span>
@@ -106,8 +106,8 @@ export function ModuleList() {
                       <span
                         className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm ${!progress?.status || progress.status === "not_started" ? "bg-muted text-muted-foreground" : ""}`}
                         style={progress?.status && progress.status !== "not_started" ? {
-                          background: progress.status === "completed" ? "rgba(13,59,34,0.08)" : "rgba(201,168,76,0.12)",
-                          color: progress.status === "completed" ? "#0D3B22" : "#C9A84C",
+                          background: progress.status === "completed" ? "rgba(13,59,34,0.08)" : "rgba(28,77,54,0.08)",
+                          color: progress.status === "completed" ? "#0D3B22" : "#1C4D36",
                         } : undefined}
                       >
                         {progress?.status === "completed" ? <CheckCircle2 className="w-4 h-4" /> : progress?.status === "in_progress" ? <PlayCircle className="w-4 h-4" /> : <Circle className="w-4 h-4" />}

@@ -152,7 +152,7 @@ export function Simulation() {
           <div className="relative h-32 overflow-hidden">
             <ImageWithFallback src={module.image} alt={module.title} className="w-full h-full object-cover" />
             <div className="absolute inset-0 flex items-center justify-center" style={{ background: "linear-gradient(to bottom, rgba(58,21,80,0.6), rgba(58,21,80,0.9))" }}>
-              <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: optimalCount === totalSteps ? "rgba(13,59,34,0.2)" : "rgba(201,168,76,0.2)" }}>
+              <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: optimalCount === totalSteps ? "rgba(13,59,34,0.2)" : "rgba(92,50,0,0.2)" }}>
                 {optimalCount === totalSteps ? <CheckCircle2 className="w-8 h-8 text-white" /> : <AlertTriangle className="w-8 h-8 text-white" />}
               </div>
             </div>
@@ -179,8 +179,8 @@ export function Simulation() {
               <h3 className="text-sm flex items-center gap-2"><BookOpenText className="w-4 h-4" /> TRACE Analysis of Your Decisions</h3>
               {decisions.map((decision, i) => (
                 <div key={i} className="p-4 rounded-xl border-2" style={{
-                  borderColor: decision.isOptimal ? "rgba(13,59,34,0.2)" : "rgba(201,168,76,0.3)",
-                  background: decision.isOptimal ? "rgba(13,59,34,0.04)" : "rgba(201,168,76,0.06)",
+                  borderColor: decision.isOptimal ? "rgba(13,59,34,0.2)" : "rgba(92,50,0,0.2)",
+                  background: decision.isOptimal ? "rgba(13,59,34,0.04)" : "rgba(92,50,0,0.04)",
                 }}>
                   <div className="flex items-start gap-3">
                     {decision.isOptimal ? <CheckCircle2 className="w-5 h-5 mt-0.5 shrink-0" style={{ color: "#0D3B22" }} /> : <XCircle className="w-5 h-5 mt-0.5 shrink-0" style={{ color: "#C9A84C" }} />}
@@ -192,8 +192,8 @@ export function Simulation() {
                       <p className="text-xs text-muted-foreground mt-2">{decision.outcome}</p>
                       <div className="mt-2 flex items-center gap-2 flex-wrap">
                         <span className="px-2 py-0.5 rounded text-xs" style={{
-                          background: decision.isOptimal ? "rgba(13,59,34,0.08)" : "rgba(201,168,76,0.12)",
-                          color: decision.isOptimal ? "#0D3B22" : "#8A6A10",
+                          background: decision.isOptimal ? "rgba(13,59,34,0.08)" : "rgba(92,50,0,0.1)",
+                          color: decision.isOptimal ? "#0D3B22" : "#5C3200",
                         }}>{decision.isOptimal ? "Optimal" : "Suboptimal"}</span>
                         <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded flex items-center gap-1">
                           <TraceIcon letter={decision.tracePhase?.charAt(0) as TraceLetter} size={14} />
@@ -305,8 +305,8 @@ export function Simulation() {
                         : "border-border hover:border-primary/30 hover:bg-secondary/50"
                     }`}
                     style={showOutcome && isSelected ? {
-                      borderColor: choice.isOptimal ? "rgba(13,59,34,0.4)" : "rgba(201,168,76,0.4)",
-                      background: choice.isOptimal ? "rgba(13,59,34,0.04)" : "rgba(201,168,76,0.06)",
+                      borderColor: choice.isOptimal ? "rgba(13,59,34,0.4)" : "rgba(92,50,0,0.3)",
+                      background: choice.isOptimal ? "rgba(13,59,34,0.04)" : "rgba(92,50,0,0.04)",
                     } : undefined}
                   >
                     <div className="flex items-start gap-3">
@@ -316,7 +316,7 @@ export function Simulation() {
                         }`}
                         style={
                           showOutcome && isSelected
-                            ? { background: choice.isOptimal ? "#0D3B22" : "#C9A84C", color: "white" }
+                            ? { background: choice.isOptimal ? "#0D3B22" : "#5C3200", color: "white" }
                             : undefined
                         }
                       >{i + 1}</span>
@@ -327,8 +327,8 @@ export function Simulation() {
                             <p className="text-sm text-foreground/70">{choice.outcome}</p>
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="px-2 py-0.5 rounded text-xs" style={{
-                                background: choice.isOptimal ? "rgba(13,59,34,0.08)" : "rgba(201,168,76,0.12)",
-                                color: choice.isOptimal ? "#0D3B22" : "#8A6A10",
+                                background: choice.isOptimal ? "rgba(13,59,34,0.08)" : "rgba(92,50,0,0.1)",
+                                color: choice.isOptimal ? "#0D3B22" : "#5C3200",
                               }}>{choice.isOptimal ? "Optimal Response" : "Suboptimal Response"}</span>
                               <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded flex items-center gap-1">
                                 <TraceIcon letter={choice.tracePhase?.charAt(0) as TraceLetter} size={14} />

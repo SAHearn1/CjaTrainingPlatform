@@ -118,7 +118,7 @@ export function Assessment() {
           <div className="relative h-32 overflow-hidden">
             <ImageWithFallback src={module.image} alt={module.title} className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-b from-primary/60 to-primary/90 flex items-center justify-center">
-              <div className={`w-20 h-20 rounded-full flex items-center justify-center`} style={{ background: passed ? "rgba(201,168,76,0.2)" : "rgba(224,71,158,0.2)" }}>
+              <div className={`w-20 h-20 rounded-full flex items-center justify-center`} style={{ background: passed ? "rgba(13,59,34,0.25)" : "rgba(224,71,158,0.2)" }}>
                 {passed ? <Award className="w-10 h-10" style={{ color: "#C9A84C" }} /> : <RotateCcw className="w-10 h-10 text-white" />}
               </div>
             </div>
@@ -259,7 +259,7 @@ export function Assessment() {
               {showExplanation && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="space-y-3">
                   <TTSControls text={buildExplanationTTS()} label="Listen to explanation" />
-                  <div className="rounded-xl p-5" style={{ background: "rgba(201,168,76,0.08)" }}>
+                  <div className="rounded-xl p-5" style={{ background: "rgba(8,42,25,0.06)" }}>
                     <div className="flex items-start gap-2 mb-2">
                       <BookOpenText className="w-4 h-4 mt-0.5" style={{ color: "#C9A84C" }} />
                       <p className="text-xs" style={{ color: "#C9A84C" }}>Explanation</p>

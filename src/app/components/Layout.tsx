@@ -112,7 +112,7 @@ export function Layout() {
         {/* Logo */}
         <div className="p-5" style={{ borderBottom: "1px solid rgba(201,168,76,0.3)" }}>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(201,168,76,0.15)" }}>
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,255,255,0.1)" }}>
               <TreePine className="w-5 h-5" style={{ color: "#C9A84C" }} />
             </div>
             <div>
@@ -139,7 +139,7 @@ export function Layout() {
               }
               style={({ isActive }) => ({
                 color: isActive ? "#C9A84C" : "rgba(242,244,202,0.75)",
-                background: isActive ? "rgba(201,168,76,0.08)" : undefined,
+                background: isActive ? "rgba(255,255,255,0.06)" : undefined,
                 borderLeft: isActive ? "3px solid #C9A84C" : "3px solid transparent",
               })}
             >
@@ -151,7 +151,7 @@ export function Layout() {
 
         {/* 5Rs Reference */}
         <div className="px-3 pb-3">
-          <div className="rounded-lg p-3" style={{ background: "rgba(201,168,76,0.06)" }}>
+          <div className="rounded-lg p-3" style={{ background: "rgba(255,255,255,0.04)" }}>
             <p className="text-xs mb-2" style={{ color: "rgba(201,168,76,0.5)", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", fontSize: "9px" }}>RootWork 5Rs</p>
             <div className="space-y-1">
               {(["Root", "Regulate", "Reflect", "Restore", "Reconnect"] as const).map((r) => (
@@ -166,7 +166,7 @@ export function Layout() {
 
         {/* Security & Access Tier Badge */}
         <div className="px-3 pb-3">
-          <div className="rounded-lg p-3" style={{ background: "rgba(201,168,76,0.06)" }}>
+          <div className="rounded-lg p-3" style={{ background: "rgba(255,255,255,0.04)" }}>
             <div className="flex items-center gap-2 mb-1">
               <ShieldCheck className="w-3.5 h-3.5" style={{ color: "rgba(201,168,76,0.5)" }} />
               <p className="text-xs" style={{ color: "rgba(201,168,76,0.5)" }}>Security</p>
@@ -176,7 +176,7 @@ export function Layout() {
                 className="px-2 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider"
                 style={{
                   background: userTier === "admin" || userTier === "superadmin"
-                    ? "rgba(201,168,76,0.15)"
+                    ? "rgba(255,255,255,0.12)"
                     : "rgba(13,59,34,0.15)",
                   color: userTier === "admin" || userTier === "superadmin"
                     ? "#C9A84C"
@@ -194,7 +194,7 @@ export function Layout() {
 
         {/* Accessibility */}
         <div className="px-3 pb-3">
-          <div className="rounded-lg p-3" style={{ background: "rgba(201,168,76,0.06)" }}>
+          <div className="rounded-lg p-3" style={{ background: "rgba(255,255,255,0.04)" }}>
             <div className="flex items-center gap-2 mb-1">
               <Volume2 className="w-3.5 h-3.5" style={{ color: "rgba(201,168,76,0.5)" }} />
               <p className="text-xs" style={{ color: "rgba(201,168,76,0.5)" }}>Audio Support</p>
@@ -208,7 +208,7 @@ export function Layout() {
         {/* User */}
         <div className="p-3" style={{ borderTop: "1px solid rgba(201,168,76,0.2)" }}>
           <div className="flex items-center gap-3 px-2 py-2">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "rgba(201,168,76,0.15)" }}>
+            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.1)" }}>
               <User className="w-4 h-4" style={{ color: "#C9A84C" }} />
             </div>
             <div className="flex-1 min-w-0">

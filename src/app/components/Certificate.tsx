@@ -131,7 +131,7 @@ export function Certificate() {
               <div className="max-w-lg mx-auto">
                 <div id="certificate-printable" ref={certRef} className="rounded-xl p-8 bg-white" style={{ border: "2px solid rgba(201,168,76,0.3)" }}>
                   <div className="flex justify-center mb-4">
-                    <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: "rgba(201,168,76,0.12)" }}>
+                    <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: "rgba(8,42,25,0.08)" }}>
                       <Award className="w-8 h-8" style={{ color: "#C9A84C" }} />
                     </div>
                   </div>
