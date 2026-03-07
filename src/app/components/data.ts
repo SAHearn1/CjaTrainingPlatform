@@ -1680,6 +1680,7 @@ export const MOCK_PROGRESS: UserProgress[] = [
   { moduleId: 7, preAssessmentScore: null, postAssessmentScore: null, sectionsCompleted: [], scenariosCompleted: [], timeSpent: 0, status: "not_started" },
 ];
 
+// DEV ONLY — placeholder mock data for local development. Never use in production code paths.
 export const ADMIN_STATS = {
   totalLearners: 342,
   activeLearners: 187,

@@ -16,7 +16,10 @@ import {
   ShieldCheck,
   Users,
   FileText,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 import { OnboardingGuide, HelpAssistant } from "./OnboardingGuide";
 import { useAuth } from "./AuthContext";
 import { SessionMonitor, LegalFooter, SecurityBadge } from "./SecurityBadge";
@@ -44,6 +47,7 @@ const fiveRsColors: Record<string, string> = {
 export function Layout() {
   const navigate = useNavigate();
   const { profile, user, loading, signOut } = useAuth();
+  const { resolvedTheme, setTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -232,6 +236,13 @@ export function Layout() {
           </button>
           <div className="flex-1" />
           <SecurityBadge compact />
+          <button
+            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            title={resolvedTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {resolvedTheme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Settings className="w-4 h-4" />
             <span className="hidden sm:inline">Settings</span>

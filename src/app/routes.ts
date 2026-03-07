@@ -3,6 +3,7 @@ import { createBrowserRouter } from "react-router";
 import { Landing } from "./components/Landing";
 import { Layout } from "./components/Layout";
 import { RootWrapper } from "./components/RootWrapper";
+import { ResetPassword } from "./components/ResetPassword";
 
 // Lazy-loaded route components for code splitting
 const Dashboard = lazy(() => import("./components/Dashboard").then(m => ({ default: m.Dashboard })));
@@ -25,6 +26,10 @@ export const router = createBrowserRouter([
       {
         index: true,
         Component: Landing,
+      },
+      {
+        path: "reset-password",
+        Component: ResetPassword,
       },
       {
         Component: Layout,

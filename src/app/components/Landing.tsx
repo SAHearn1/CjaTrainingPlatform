@@ -22,6 +22,7 @@ import {
   Mic,
   FileWarning,
   ArrowRight,
+  ArrowLeft,
   BookOpen,
   Users,
   Award,
@@ -379,9 +380,9 @@ function AuthModal({
   defaultMode?: "signin" | "signup";
 }) {
   const navigate = useNavigate();
-  const { user, profile, signIn, signUp, updateProfile } = useAuth();
+  const { user, profile, signIn, signUp, updateProfile, resetPassword } = useAuth();
 
-  const [mode, setMode] = useState<"signin" | "signup">(defaultMode);
+  const [mode, setMode] = useState<"signin" | "signup" | "reset">(defaultMode);
   const [step, setStep] = useState<"auth" | "role">("auth");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -389,11 +390,13 @@ function AuthModal({
   const [selectedRole, setSelectedRole] = useState<RoleId | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   useEffect(() => {
     if (open) {
       setMode(defaultMode);
       setError(null);
+      setResetSent(false);
     }
   }, [open, defaultMode]);
 
@@ -420,6 +423,20 @@ function AuthModal({
       }
     } catch (e: any) {
       setError(e.message || "Authentication failed");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleReset = async () => {
+    if (!email) { setError("Please enter your email address"); return; }
+    setError(null);
+    setSubmitting(true);
+    try {
+      await resetPassword(email);
+      setResetSent(true);
+    } catch (e: any) {
+      setError(e.message || "Failed to send reset link");
     } finally {
       setSubmitting(false);
     }
@@ -475,81 +492,148 @@ function AuthModal({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              <h2 className="text-center mb-2">
-                {mode === "signin" ? "Welcome Back" : "Create Your Account"}
-              </h2>
-              <p className="text-muted-foreground text-center text-sm mb-6">
-                {mode === "signin"
-                  ? "Sign in to continue your training"
-                  : "Sign up to access the training platform"}
-              </p>
+              {mode === "reset" ? (
+                /* ── Password Reset Mode ── */
+                <>
+                  <button
+                    onClick={() => { setMode("signin"); setError(null); setResetSent(false); }}
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4"
+                  >
+                    <ArrowLeft className="w-4 h-4" /> Back to sign in
+                  </button>
+                  <h2 className="text-center mb-2">Reset Your Password</h2>
+                  <p className="text-muted-foreground text-center text-sm mb-6">
+                    Enter your email and we'll send you a password reset link
+                  </p>
 
-              {error && (
-                <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-                  <p className="text-sm text-red-700">{error}</p>
-                </div>
-              )}
-
-              <div className="space-y-4">
-                {mode === "signup" && (
-                  <div>
-                    <label className="block text-sm mb-1.5">Full Name</label>
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Dr. Jane Smith"
-                      className="w-full px-4 py-2.5 rounded-lg bg-input-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                    />
-                  </div>
-                )}
-                <div>
-                  <label className="block text-sm mb-1.5">Email Address</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="jane.smith@agency.gov"
-                    className="w-full px-4 py-2.5 rounded-lg bg-input-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                    onKeyDown={(e) => e.key === "Enter" && handleAuth()}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1.5">Password</label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder={mode === "signup" ? "Create a secure password" : "Enter your password"}
-                    className="w-full px-4 py-2.5 rounded-lg bg-input-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                    onKeyDown={(e) => e.key === "Enter" && handleAuth()}
-                  />
-                  {mode === "signup" && <PasswordStrengthMeter password={password} />}
-                </div>
-                <button
-                  onClick={handleAuth}
-                  disabled={submitting}
-                  className="w-full bg-primary text-primary-foreground py-3 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {submitting ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : mode === "signin" ? (
-                    <><LogIn className="w-4 h-4" /> Sign In</>
-                  ) : (
-                    <><UserPlus className="w-4 h-4" /> Create Account</>
+                  {error && (
+                    <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                      <p className="text-sm text-red-700">{error}</p>
+                    </div>
                   )}
-                </button>
-              </div>
 
-              <div className="mt-6 text-center">
-                <button
-                  onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(null); }}
-                  className="text-sm text-primary hover:underline"
-                >
-                  {mode === "signin" ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
-                </button>
-              </div>
+                  {resetSent ? (
+                    <div className="p-4 rounded-lg bg-green-50 border border-green-200 text-center">
+                      <p className="text-sm font-medium text-green-800 mb-1">Reset link sent!</p>
+                      <p className="text-sm text-green-700">
+                        Check your email for a password reset link. You can close this dialog.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm mb-1.5">Email Address</label>
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="jane.smith@agency.gov"
+                          className="w-full px-4 py-2.5 rounded-lg bg-input-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                          onKeyDown={(e) => e.key === "Enter" && handleReset()}
+                        />
+                      </div>
+                      <button
+                        onClick={handleReset}
+                        disabled={submitting}
+                        className="w-full bg-primary text-primary-foreground py-3 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send Reset Link"}
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                /* ── Sign In / Sign Up Mode ── */
+                <>
+                  <h2 className="text-center mb-2">
+                    {mode === "signin" ? "Welcome Back" : "Create Your Account"}
+                  </h2>
+                  <p className="text-muted-foreground text-center text-sm mb-6">
+                    {mode === "signin"
+                      ? "Sign in to continue your training"
+                      : "Sign up to access the training platform"}
+                  </p>
+
+                  {error && (
+                    <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                      <p className="text-sm text-red-700">{error}</p>
+                    </div>
+                  )}
+
+                  <div className="space-y-4">
+                    {mode === "signup" && (
+                      <div>
+                        <label className="block text-sm mb-1.5">Full Name</label>
+                        <input
+                          type="text"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          placeholder="Dr. Jane Smith"
+                          className="w-full px-4 py-2.5 rounded-lg bg-input-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <label className="block text-sm mb-1.5">Email Address</label>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="jane.smith@agency.gov"
+                        className="w-full px-4 py-2.5 rounded-lg bg-input-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                        onKeyDown={(e) => e.key === "Enter" && handleAuth()}
+                      />
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-sm">Password</label>
+                        {mode === "signin" && (
+                          <button
+                            type="button"
+                            onClick={() => { setMode("reset"); setError(null); }}
+                            className="text-xs text-primary hover:underline"
+                          >
+                            Forgot password?
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder={mode === "signup" ? "Create a secure password" : "Enter your password"}
+                        className="w-full px-4 py-2.5 rounded-lg bg-input-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                        onKeyDown={(e) => e.key === "Enter" && handleAuth()}
+                      />
+                      {mode === "signup" && <PasswordStrengthMeter password={password} />}
+                    </div>
+                    <button
+                      onClick={handleAuth}
+                      disabled={submitting}
+                      className="w-full bg-primary text-primary-foreground py-3 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {submitting ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : mode === "signin" ? (
+                        <><LogIn className="w-4 h-4" /> Sign In</>
+                      ) : (
+                        <><UserPlus className="w-4 h-4" /> Create Account</>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="mt-6 text-center">
+                    <button
+                      onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(null); }}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      {mode === "signin" ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+                    </button>
+                  </div>
+                </>
+              )}
             </motion.div>
           ) : (
             <motion.div
