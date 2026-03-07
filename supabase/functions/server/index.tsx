@@ -514,17 +514,36 @@ app.get("/make-server-39a35780/admin/stats", async (c) => {
 
     // Audit: admin dashboard access
     await auditLog("admin:dashboard_access", userId, "success", "Admin stats requested", c);
-    // Get all user profiles to count learners
-    const profiles = await kv.getByPrefix("user:");
-    // Filter to only profile keys
-    const userProfiles = profiles.filter((p: any) => p?.userId && p?.role);
+    // Get all user records with keys to extract userId from key paths
+    const allEntries = await kv.getByPrefixWithKeys("user:");
+
+    // Separate profile records (user:{userId}:profile) from progress records (user:{userId}:progress:{moduleId})
+    const profileEntries = allEntries.filter(({ key }) => key.endsWith(":profile"));
+    const progressEntries = allEntries.filter(({ key }) => key.includes(":progress:"));
+
+    const userProfiles = profileEntries
+      .map(({ value }) => value)
+      .filter((p: any) => p?.userId && p?.role);
     const totalLearners = userProfiles.length;
 
-    // Get all progress records
-    const allProgress = profiles.filter((p: any) => p?.moduleId !== undefined && p?.status);
+    // Build a map from userId -> list of progress records
+    const progressByUser: Record<string, any[]> = {};
+    progressEntries.forEach(({ key, value }: { key: string; value: any }) => {
+      // Key format: user:{userId}:progress:{moduleId} — must have at least 4 segments
+      const parts = key.split(":");
+      if (parts.length < 4) return;
+      const uid = parts[1];
+      if (!uid) return;
+      if (!progressByUser[uid]) progressByUser[uid] = [];
+      progressByUser[uid].push(value);
+    });
+
+    const allProgress = progressEntries.map(({ value }) => value).filter((p: any) => p?.moduleId !== undefined && p?.status);
 
     const completedCount = allProgress.filter((p: any) => p.status === "completed").length;
-    const activeLearners = new Set(allProgress.filter((p: any) => p.status === "in_progress").map((p: any) => p.userId)).size;
+    const activeLearners = Object.values(progressByUser).filter((progs) =>
+      progs.some((p: any) => p.status === "in_progress")
+    ).length;
 
     // Score distribution
     const scores = allProgress
@@ -554,15 +573,20 @@ app.get("/make-server-39a35780/admin/stats", async (c) => {
       { range: "Below 60%", count: scores.filter((s: number) => s < 60).length },
     ];
 
-    // Role breakdown
-    const roleCounts: Record<string, number> = {};
+    // Role breakdown with actual completion rates (keyed by userId from progressByUser map)
+    const roleStats: Record<string, { learners: number; completedModules: number; totalModules: number }> = {};
     userProfiles.forEach((p: any) => {
-      roleCounts[p.role] = (roleCounts[p.role] || 0) + 1;
+      const role = p.role;
+      if (!roleStats[role]) roleStats[role] = { learners: 0, completedModules: 0, totalModules: 0 };
+      roleStats[role].learners += 1;
+      const userProgress = progressByUser[p.userId] || [];
+      roleStats[role].totalModules += userProgress.length;
+      roleStats[role].completedModules += userProgress.filter((pr: any) => pr.status === "completed").length;
     });
-    const agencyBreakdown = Object.entries(roleCounts).map(([role, count]) => ({
+    const agencyBreakdown = Object.entries(roleStats).map(([role, data]) => ({
       name: role,
-      learners: count,
-      completion: 0,
+      learners: data.learners,
+      completion: data.totalModules > 0 ? Math.round((data.completedModules / data.totalModules) * 100) : 0,
     }));
 
     return c.json({

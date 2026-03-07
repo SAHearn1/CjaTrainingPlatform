@@ -46,6 +46,7 @@ interface AuthState {
   signUp: (email: string, password: string, name: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
 
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
   updateModuleProgress: (moduleId: number, data: Partial<ModuleProgress>) => Promise<void>;
@@ -257,6 +258,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setWatchedVignettes([]);
   }, []);
 
+  const resetPassword = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) throw new Error(error.message);
+  }, []);
+
   const updateProfileFn = useCallback(async (data: Partial<UserProfile>) => {
     if (!accessToken) return;
     const { profile: p } = await api.updateProfile(accessToken, data);
@@ -323,6 +331,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signUp,
         signIn,
         signOut,
+        resetPassword,
         updateProfile: updateProfileFn,
         updateModuleProgress,
         markVignetteWatched,

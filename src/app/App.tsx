@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { RouterProvider } from "react-router";
 import { Loader2 } from "lucide-react";
+import { ThemeProvider } from "next-themes";
 import { router } from "./routes";
 import { AuthProvider } from "./components/AuthContext";
 
@@ -14,10 +15,12 @@ function RouteLoader() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Suspense fallback={<RouteLoader />}>
-        <RouterProvider router={router} />
-      </Suspense>
-    </AuthProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <AuthProvider>
+        <Suspense fallback={<RouteLoader />}>
+          <RouterProvider router={router} />
+        </Suspense>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

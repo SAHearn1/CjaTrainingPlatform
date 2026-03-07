@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
-import { MODULES, ADMIN_STATS } from "./data";
+import { MODULES } from "./data";
 import {
   Users,
   TrendingUp,
   Award,
   BarChart3,
-  Building2,
   BookOpen,
   Download,
   Filter,
@@ -52,6 +51,22 @@ function hexAlpha(hex: string, alpha: number) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
+// Human-readable labels for role IDs
+const ROLE_LABELS: Record<string, string> = {
+  law_enforcement: "Law Enforcement",
+  cpi: "Child Protective Investigator",
+  prosecutor: "Prosecutor",
+  judge: "Judge",
+  medical: "Medical Professional",
+  school: "School Personnel",
+  advocate: "Victim Advocate",
+  forensic: "Forensic Interviewer",
+  mandated_reporter: "Mandated Reporter",
+  supervisor: "Supervisor",
+  admin: "Administrator",
+  superadmin: "Super Administrator",
+};
+
 interface AdminStatsData {
   totalLearners: number;
   activeLearners: number;
@@ -87,19 +102,19 @@ function AdminDashboardInner() {
     setLoading(true);
     setError(null);
     try {
-      if (accessToken) {
-        const res = await api.getAdminStats(accessToken);
-        if (res.stats) {
-          setStats(res.stats);
-          setLoading(false);
-          return;
-        }
+      if (!accessToken) {
+        setError("No access token available. Please sign in again.");
+        return;
       }
-      // Fallback to static mock data if no server data
-      setStats(ADMIN_STATS as AdminStatsData);
+      const res = await api.getAdminStats(accessToken);
+      if (res.stats) {
+        setStats(res.stats);
+      } else {
+        setError("The server returned no statistics data. Please try again.");
+      }
     } catch (e: any) {
-      console.warn("Admin stats API failed, using mock data:", e.message);
-      setStats(ADMIN_STATS as AdminStatsData);
+      console.error("Admin stats API failed:", e.message);
+      setError(e.message || "Unable to load live data. Please refresh or contact support.");
     } finally {
       setLoading(false);
     }
@@ -107,7 +122,7 @@ function AdminDashboardInner() {
 
   const tabs = [
     { id: "overview" as const, label: "Overview", icon: BarChart3 },
-    { id: "agencies" as const, label: "Agencies", icon: Building2 },
+    { id: "agencies" as const, label: "Roles", icon: Users },
     { id: "modules" as const, label: "Modules", icon: BookOpen },
     { id: "learners" as const, label: "Learners", icon: Users },
   ];
@@ -124,7 +139,12 @@ function AdminDashboardInner() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
         <AlertCircle className="w-8 h-8" style={{ color: "var(--destructive)" }} />
-        <p className="text-sm text-muted-foreground">Failed to load admin statistics</p>
+        <p className="text-sm font-medium">Failed to load admin statistics</p>
+        {error && (
+          <p className="text-sm text-muted-foreground max-w-sm text-center">
+            {error} — Please retry or contact support if the problem persists.
+          </p>
+        )}
         <button onClick={loadStats} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm">
           Retry
         </button>
@@ -334,42 +354,39 @@ function AdminDashboardInner() {
           className="bg-card rounded-xl border border-border overflow-hidden"
         >
           <div className="p-4 border-b border-border flex items-center gap-3">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                placeholder="Search agencies..."
-                className="w-full pl-9 pr-4 py-2 bg-input-background rounded-lg border border-border text-sm"
-              />
+            <div>
+              <h3 className="text-sm font-medium">Learner Role Distribution</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Breakdown of enrolled learners by professional role</p>
             </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left p-4 text-xs text-muted-foreground">Agency</th>
+                  <th className="text-left p-4 text-xs text-muted-foreground">Role</th>
                   <th className="text-left p-4 text-xs text-muted-foreground">Learners</th>
                   <th className="text-left p-4 text-xs text-muted-foreground">Completion Rate</th>
                   <th className="text-left p-4 text-xs text-muted-foreground">Progress</th>
                 </tr>
               </thead>
               <tbody>
-                {stats.agencyBreakdown.map((agency) => (
-                  <tr key={agency.name} className="border-b border-border hover:bg-secondary/50">
+                {stats.agencyBreakdown.map((entry) => (
+                  <tr key={entry.name} className="border-b border-border hover:bg-secondary/50">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: hexAlpha("#0D3B22", 0.08) }}>
-                          <Building2 className="w-4 h-4" style={{ color: "#0D3B22" }} />
+                          <Users className="w-4 h-4" style={{ color: "#0D3B22" }} />
                         </div>
-                        <span className="text-sm">{agency.name}</span>
+                        <span className="text-sm">{ROLE_LABELS[entry.name] || entry.name}</span>
                       </div>
                     </td>
-                    <td className="p-4 text-sm">{agency.learners}</td>
-                    <td className="p-4 text-sm">{agency.completion}%</td>
+                    <td className="p-4 text-sm">{entry.learners}</td>
+                    <td className="p-4 text-sm">{entry.completion}%</td>
                     <td className="p-4">
                       <div className="w-32 h-2 bg-muted rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full"
-                          style={{ width: `${agency.completion}%`, background: "#0D3B22" }}
+                          style={{ width: `${entry.completion}%`, background: "#0D3B22" }}
                         />
                       </div>
                     </td>
