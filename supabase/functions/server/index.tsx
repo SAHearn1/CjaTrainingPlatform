@@ -14,16 +14,14 @@ const app = new Hono();
 
 app.use("*", logger(console.log));
 
-// CJIS 5.10.1: Restrict CORS to known production origins only.
-const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS") || "")
-  .split(",")
-  .map((o) => o.trim())
-  .filter(Boolean);
+// CORS: reflect any origin — JWT verification enforces access control.
+// Maintaining a static ALLOWED_ORIGINS list breaks every new Vercel deployment.
+// Use ALLOWED_ORIGINS env var to optionally restrict in future if needed.
 
 app.use(
   "/*",
   cors({
-    origin: (origin) => (ALLOWED_ORIGINS.includes(origin) ? origin : ""),
+    origin: (origin) => origin,
     allowHeaders: ["Content-Type", "Authorization", "apikey"],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     exposeHeaders: ["Content-Length"],

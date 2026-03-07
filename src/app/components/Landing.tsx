@@ -38,6 +38,8 @@ import {
   MessageCircle,
   X,
   Send,
+  Volume2,
+  VolumeX,
   ArrowDown,
 } from "lucide-react";
 
@@ -164,7 +166,25 @@ function RootyChatbot() {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [speakEnabled, setSpeakEnabled] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const speakText = (text: string) => {
+    if (!speakEnabled || !("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    // Prefer a natural English voice
+    const voices = window.speechSynthesis.getVoices();
+    const preferred =
+      voices.find((v) => v.lang.startsWith("en") && v.name.includes("Google")) ||
+      voices.find((v) => v.lang.startsWith("en")) ||
+      null;
+    if (preferred) utterance.voice = preferred;
+    window.speechSynthesis.speak(utterance);
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -187,6 +207,7 @@ function RootyChatbot() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "apikey": publicAnonKey,
           Authorization: `Bearer ${publicAnonKey}`,
         },
         body: JSON.stringify({ messages: updated }),
@@ -197,10 +218,12 @@ function RootyChatbot() {
       if (data.error) throw new Error(data.error);
 
       setMessages((prev) => [...prev, { role: "assistant", text: data.reply }]);
+      speakText(data.reply);
     } catch (e) {
       console.log("Rooty Gemini API error, using fallback:", e);
       const response = getRootyResponse(trimmed);
       setMessages((prev) => [...prev, { role: "assistant", text: response }]);
+      speakText(response);
     } finally {
       setLoading(false);
     }
@@ -210,7 +233,10 @@ function RootyChatbot() {
     <>
       {/* Floating button */}
       <motion.button
-        onClick={() => setOpen(!open)}
+        onClick={() => {
+          if (open) window.speechSynthesis.cancel();
+          setOpen(!open);
+        }}
         className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-xl flex items-center justify-center"
         style={{ background: "#082A19" }}
         whileHover={{ scale: 1.08 }}
@@ -245,7 +271,7 @@ function RootyChatbot() {
                 alt="Rooty"
                 className="w-8 h-8 rounded-full object-contain"
               />
-              <div>
+              <div className="flex-1">
                 <p className="text-sm font-semibold" style={{ color: "#C9A84C" }}>
                   Rooty
                 </p>
@@ -253,6 +279,20 @@ function RootyChatbot() {
                   RootWork Framework Assistant
                 </p>
               </div>
+              <button
+                onClick={() => {
+                  if (speakEnabled) window.speechSynthesis.cancel();
+                  setSpeakEnabled((v) => !v);
+                }}
+                className="w-7 h-7 rounded-full flex items-center justify-center transition-colors"
+                style={{ background: "rgba(255,255,255,0.1)" }}
+                title={speakEnabled ? "Mute voice" : "Unmute voice"}
+              >
+                {speakEnabled
+                  ? <Volume2 className="w-3.5 h-3.5" style={{ color: "#C9A84C" }} />
+                  : <VolumeX className="w-3.5 h-3.5" style={{ color: "rgba(201,168,76,0.5)" }} />
+                }
+              </button>
             </div>
 
             {/* Messages */}
