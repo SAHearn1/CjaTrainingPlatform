@@ -896,6 +896,7 @@ app.post("/make-server-39a35780/rooty/chat", async (c) => {
       ],
     };
 
+    // Try gemini-2.0-flash first; fall back to gemini-2.0-flash-lite
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
     const resp = await fetch(url, {
