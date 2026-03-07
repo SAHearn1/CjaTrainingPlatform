@@ -5,6 +5,8 @@ const BASE = `https://${projectId}.supabase.co/functions/v1/make-server-39a35780
 async function request(path: string, options: RequestInit = {}, accessToken?: string | null) {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    // apikey is required by Supabase edge function gateway for JWT verification routing
+    "apikey": publicAnonKey,
     Authorization: `Bearer ${accessToken || publicAnonKey}`,
     ...((options.headers as Record<string, string>) || {}),
   };
