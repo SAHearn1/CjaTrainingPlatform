@@ -594,6 +594,28 @@ app.get("/make-server-39a35780/videos", async (c) => {
   }
 });
 
+// Bulk import endpoint — admin/superadmin only.
+// Accepts { entries: Record<string, { url: string; status: string }> }
+app.post("/make-server-39a35780/admin/videos/bulk", async (c) => {
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized" }, 401);
+  const role = await getUserRole(userId);
+  if (!ADMIN_ROLES.includes(role)) return c.json({ error: "Forbidden" }, 403);
+  try {
+    const { entries } = await c.req.json();
+    if (!entries || typeof entries !== "object") return c.json({ error: "entries object required" }, 400);
+    const registry: Record<string, any> = await kv.get(VIDEO_REGISTRY_KEY) ?? {};
+    const now = new Date().toISOString();
+    for (const [videoId, data] of Object.entries(entries) as [string, any][]) {
+      registry[videoId] = { ...registry[videoId], ...data, updatedAt: now, updatedBy: "system" };
+    }
+    await kv.set(VIDEO_REGISTRY_KEY, registry);
+    return c.json({ ok: true, updated: Object.keys(entries).length });
+  } catch (e) {
+    return c.json({ error: `Bulk update failed: ${e}` }, 500);
+  }
+});
+
 app.get("/make-server-39a35780/admin/videos", async (c) => {
   const userId = await getUserId(c);
   if (!userId) return c.json({ error: "Unauthorized" }, 401);
