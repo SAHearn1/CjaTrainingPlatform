@@ -243,10 +243,15 @@ export function Layout() {
           >
             {resolvedTheme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              `flex items-center gap-2 text-sm transition-colors ${isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`
+            }
+          >
             <Settings className="w-4 h-4" />
             <span className="hidden sm:inline">Settings</span>
-          </div>
+          </NavLink>
         </header>
 
         <main id="main-content" className="flex-1 overflow-y-auto" ref={mainHeadingRef} tabIndex={-1} style={{ outline: "none" }}>
