@@ -136,7 +136,7 @@ function AdminDashboardInner() {
     );
   }
 
-  // Normalise score distribution key (server returns scoreDistribution, mock uses assessmentDistribution)
+  // Normalise score distribution key (server returns scoreDistribution or assessmentDistribution)
   const scoreDistribution = stats.scoreDistribution || stats.assessmentDistribution || [];
   const monthlyEnrollment = stats.monthlyEnrollment || [];
 

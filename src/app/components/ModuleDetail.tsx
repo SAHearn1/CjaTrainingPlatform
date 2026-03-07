@@ -50,6 +50,23 @@ export function ModuleDetail() {
   const module = MODULES.find((m) => m.id === Number(moduleId));
   const { progress: userProgress, watchedVignettes, markVignetteWatched, unmarkVignetteWatched, updateModuleProgress, profile, updateProfile } = useAuth();
   const progress = userProgress.find((p) => p.moduleId === Number(moduleId));
+  // Reflections: controlled state persisted to localStorage per module+section
+  const [reflections, setReflections] = useState<Record<string, string>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(`reflections:module:${moduleId}`) || "{}");
+    } catch {
+      return {};
+    }
+  });
+
+  const handleReflectionChange = (sectionId: string, text: string) => {
+    const updated = { ...reflections, [sectionId]: text };
+    setReflections(updated);
+    try {
+      localStorage.setItem(`reflections:module:${moduleId}`, JSON.stringify(updated));
+    } catch {}
+  };
+
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [selectedState, setSelectedState] = useState(profile?.selectedState || "GA");
 
@@ -362,7 +379,13 @@ export function ModuleDetail() {
                             <TTSControls text={`Guided Reflection: How does the concept of ${section.phase} apply to your professional role? Consider a recent case or situation where this approach could have changed the outcome.`} compact label="Listen" />
                           </div>
                           <p className="text-sm text-foreground/80 mb-3">How does the concept of "{section.phase}" apply to your professional role? Consider a recent case or situation where this approach could have changed the outcome.</p>
-                          <textarea className="w-full p-3 rounded-lg border border-border bg-white text-sm resize-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" rows={3} placeholder="Write your reflection here..." />
+                          <textarea
+                            className="w-full p-3 rounded-lg border border-border bg-white text-sm resize-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                            rows={3}
+                            placeholder="Write your reflection here..."
+                            value={reflections[section.id] || ""}
+                            onChange={(e) => handleReflectionChange(section.id, e.target.value)}
+                          />
                         </div>
 
                         <div className="mt-4 flex justify-end">
