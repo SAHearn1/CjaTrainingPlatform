@@ -12,6 +12,7 @@ export const module1: Module =   {
     sections: [
       {
         id: "m1-root",
+        videoId: "LEC-M1-01",
         phase: "Root",
         title: "Understanding Childhood Trauma",
         description: "Core concepts of childhood trauma and its impact on development",
@@ -31,6 +32,7 @@ export const module1: Module =   {
       },
       {
         id: "m1-regulate",
+        videoId: "LEC-M1-02",
         phase: "Regulate",
         title: "Professional Self-Regulation",
         description: "Managing personal responses during investigations",
@@ -47,6 +49,7 @@ export const module1: Module =   {
       },
       {
         id: "m1-reflect",
+        videoId: "LEC-M1-03",
         phase: "Reflect",
         title: "Case Analysis Workshop",
         description: "Interactive scenario analysis using the TRACE framework",
@@ -59,6 +62,7 @@ export const module1: Module =   {
       },
       {
         id: "m1-restore",
+        videoId: "LEC-M1-04",
         phase: "Restore",
         title: "Corrective Investigation Procedures",
         description: "Evidence-based investigation protocols",
@@ -71,6 +75,7 @@ export const module1: Module =   {
       },
       {
         id: "m1-reconnect",
+        videoId: "LEC-M1-05",
         phase: "Reconnect",
         title: "MDT Collaboration Framework",
         description: "Building effective multidisciplinary team responses",
@@ -264,6 +269,7 @@ export const module1: Module =   {
     scenarios: [
       {
         id: "m1-s1",
+        videoId: "SIM-M1-S1",
         title: "First Response: Initial Contact with a Distressed Child",
         description:
           "You are a law enforcement officer responding to a school where a 7-year-old has disclosed physical abuse to their teacher.",

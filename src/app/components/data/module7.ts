@@ -11,7 +11,7 @@ export const module7: Module =   {
     image: MODULE_IMAGES[6],
     sections: [
       {
-        id: "m7-root", phase: "Root", title: "Who Is a Mandated Reporter? Georgia Law & Federal Baseline",
+        id: "m7-root", videoId: "LEC-M7-01", phase: "Root", title: "Who Is a Mandated Reporter? Georgia Law & Federal Baseline",
         description: "Legal definitions under O.C.G.A. § 19-7-5, CAPTA, and cross-state comparison",
         content: [
           "Under Georgia law (O.C.G.A. § 19-7-5), specific categories of professionals are mandated reporters of suspected child abuse. Georgia is NOT a universal reporting state — only designated professionals are legally required to report.",
@@ -31,7 +31,7 @@ export const module7: Module =   {
         ],
       },
       {
-        id: "m7-regulate", phase: "Regulate", title: "Managing the Emotional Weight of Disclosure",
+        id: "m7-regulate", videoId: "LEC-M7-02", phase: "Regulate", title: "Managing the Emotional Weight of Disclosure",
         description: "Regulating yourself when a child discloses — the reporter's TRACE cycle",
         content: [
           "When a child discloses abuse, the Trigger in your TRACE cycle is immediate: shock, anger, sadness, disbelief. Your visible emotional Response directly affects whether the child continues speaking or shuts down. The child is reading your face, your body, your tone — and deciding whether you are safe.",
@@ -44,7 +44,7 @@ export const module7: Module =   {
         ],
       },
       {
-        id: "m7-reflect", phase: "Reflect", title: "Recognizing Indicators of Abuse & Neglect",
+        id: "m7-reflect", videoId: "LEC-M7-03", phase: "Reflect", title: "Recognizing Indicators of Abuse & Neglect",
         description: "Physical, behavioral, and environmental red flags — Georgia definitions and standards",
         content: [
           "Physical indicators of abuse: unexplained injuries (especially patterned bruising — loop marks, hand prints, belt marks), burns in unusual locations (immersion burns with clear demarcation lines, cigarette burns), fractures inconsistent with developmental stage (spiral fractures in non-ambulatory infants), failure to thrive without medical explanation.",
@@ -63,7 +63,7 @@ export const module7: Module =   {
         ],
       },
       {
-        id: "m7-restore", phase: "Restore", title: "The Georgia Reporting Process: Step by Step",
+        id: "m7-restore", videoId: "LEC-M7-04", phase: "Restore", title: "The Georgia Reporting Process: Step by Step",
         description: "How to report under O.C.G.A. § 19-7-5, what happens next, and your legal protections",
         content: [
           "Step 1 — Document your observations BEFORE calling: write down what you saw (specific injuries, statements the child made using their exact words, behavioral patterns, dates and times). Do not interpret — record facts. This documentation may be requested by DFCS or law enforcement.",
@@ -84,7 +84,7 @@ export const module7: Module =   {
         ],
       },
       {
-        id: "m7-reconnect", phase: "Reconnect", title: "Supporting the Child After a Report & Building Reporting Culture",
+        id: "m7-reconnect", videoId: "LEC-M7-05", phase: "Reconnect", title: "Supporting the Child After a Report & Building Reporting Culture",
         description: "Maintaining trust, collaborating with investigators, and organizational readiness",
         content: [
           "After making a report, your role does not change. You are not an investigator — you are a teacher, coach, counselor, or childcare worker. Your job is to continue being a safe, stable, predictable presence in the child's life.",
@@ -111,6 +111,7 @@ export const module7: Module =   {
     scenarios: [
       {
         id: "m7-s1",
+        videoId: "SIM-M7-S1",
         title: "A Child's Drawing Tells a Story",
         description: "A student in your after-school program draws something concerning. You must decide how to respond in the moment and what steps to take next.",
         steps: [
@@ -160,6 +161,7 @@ export const module7: Module =   {
       },
       {
         id: "m7-s2",
+        videoId: "SIM-M7-S2",
         title: "The Principal Says 'Let Me Handle It'",
         description: "You suspect abuse and your school principal tells you not to report directly. Navigate institutional pressure against your personal legal obligation under O.C.G.A. \u00A7 19-7-5.",
         steps: [

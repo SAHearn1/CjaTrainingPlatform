@@ -12,6 +12,7 @@ export const module2: Module =   {
     sections: [
       {
         id: "m2-root",
+        videoId: "LEC-M2-01",
         phase: "Root",
         title: "Principles of Forensic Communication",
         description: "Evidence-based communication frameworks for sensitive investigations",
@@ -29,6 +30,7 @@ export const module2: Module =   {
       },
       {
         id: "m2-regulate",
+        videoId: "LEC-M2-02",
         phase: "Regulate",
         title: "Emotional Regulation in High-Stress Interviews",
         description: "Managing emotional responses during difficult disclosures",
@@ -41,6 +43,7 @@ export const module2: Module =   {
       },
       {
         id: "m2-reflect",
+        videoId: "LEC-M2-03",
         phase: "Reflect",
         title: "Interview Analysis Lab",
         description: "Review and analyze interview techniques through case examples",
@@ -53,6 +56,7 @@ export const module2: Module =   {
       },
       {
         id: "m2-restore",
+        videoId: "LEC-M2-04",
         phase: "Restore",
         title: "Advanced Interview Protocols",
         description: "Structured interview methodologies",
@@ -65,6 +69,7 @@ export const module2: Module =   {
       },
       {
         id: "m2-reconnect",
+        videoId: "LEC-M2-05",
         phase: "Reconnect",
         title: "Collaborative Communication Networks",
         description: "Building communication pathways across disciplines",
@@ -195,6 +200,7 @@ export const module2: Module =   {
     scenarios: [
       {
         id: "m2-s1",
+        videoId: "SIM-M2-S1",
         title: "De-escalating a Defensive Caregiver",
         description:
           "You must interview a parent who has been accused of neglect and is hostile toward the investigation.",

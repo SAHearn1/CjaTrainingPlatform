@@ -20,6 +20,7 @@ const AuditLog = lazy(() => import("./components/AuditLog").then(m => ({ default
 const Settings = lazy(() => import("./components/Settings").then(m => ({ default: m.Settings })));
 const InstructorDashboard = lazy(() => import("./components/InstructorDashboard").then(m => ({ default: m.InstructorDashboard })));
 const AgencyManagement = lazy(() => import("./components/AgencyManagement").then(m => ({ default: m.AgencyManagement })));
+const AdminVideos = lazy(() => import("./components/AdminVideos").then(m => ({ default: m.AdminVideos })));
 
 export const router = createBrowserRouter([
   {
@@ -51,6 +52,7 @@ export const router = createBrowserRouter([
           { path: "settings", Component: Settings },
           { path: "instructor", Component: InstructorDashboard },
           { path: "admin/agencies", Component: AgencyManagement },
+          { path: "admin/videos", Component: AdminVideos },
         ],
       },
     ],

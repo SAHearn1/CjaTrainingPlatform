@@ -20,6 +20,8 @@ export interface Section {
   content: string[];
   keyTerms?: KeyTerm[];
   videoUrl?: string;
+  /** Stable identifier for the video registry (e.g. "LEC-M1-01"). Overrides videoUrl when registry has a URL. */
+  videoId?: string;
 }
 
 export interface KeyTerm {
@@ -47,6 +49,8 @@ export interface Scenario {
   title: string;
   description: string;
   steps: ScenarioStep[];
+  /** Stable identifier for the simulation opener video in the registry (e.g. "SIM-M1-S1"). */
+  videoId?: string;
 }
 
 export interface ScenarioStep {

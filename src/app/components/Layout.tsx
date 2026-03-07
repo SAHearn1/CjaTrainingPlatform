@@ -18,6 +18,7 @@ import {
   FileText,
   Sun,
   Moon,
+  Film,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { OnboardingGuide, HelpAssistant } from "./OnboardingGuide";
@@ -36,6 +37,7 @@ const navItems = [
   { to: "/admin/users", label: "User Management", icon: Users, permission: "admin:users" as const },
   { to: "/admin/audit", label: "Audit Log", icon: FileText, permission: "admin:audit" as const },
   { to: "/admin/agencies", label: "Agency Management", icon: BarChart3, permission: "admin:users" as const },
+  { to: "/admin/videos", label: "Video Registry", icon: Film, permission: "admin:users" as const },
 ];
 
 // Brand 5Rs colors

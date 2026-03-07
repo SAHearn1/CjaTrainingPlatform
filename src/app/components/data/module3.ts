@@ -12,6 +12,7 @@ export const module3: Module =   {
     sections: [
       {
         id: "m3-root",
+        videoId: "LEC-M3-01",
         phase: "Root",
         title: "Disability Law Foundations",
         description: "Key federal disability laws and their application to child welfare",
@@ -30,6 +31,7 @@ export const module3: Module =   {
       },
       {
         id: "m3-regulate",
+        videoId: "LEC-M3-02",
         phase: "Regulate",
         title: "Bias Awareness in Disability Cases",
         description: "Recognizing and managing bias when investigating cases involving children with disabilities",
@@ -42,6 +44,7 @@ export const module3: Module =   {
       },
       {
         id: "m3-reflect",
+        videoId: "LEC-M3-03",
         phase: "Reflect",
         title: "Disability Case Analysis",
         description: "Examining real-world cases involving children with disabilities",
@@ -54,6 +57,7 @@ export const module3: Module =   {
       },
       {
         id: "m3-restore",
+        videoId: "LEC-M3-04",
         phase: "Restore",
         title: "Accommodation Protocols",
         description: "Implementing proper accommodations in investigations",
@@ -71,6 +75,7 @@ export const module3: Module =   {
       },
       {
         id: "m3-reconnect",
+        videoId: "LEC-M3-05",
         phase: "Reconnect",
         title: "Disability-Informed MDT Practice",
         description: "Building disability-competent multidisciplinary responses",
@@ -197,6 +202,7 @@ export const module3: Module =   {
     scenarios: [
       {
         id: "m3-s1",
+        videoId: "SIM-M3-S1",
         title: "Interviewing a Child with ASD",
         description:
           "You need to conduct a forensic interview with a 10-year-old diagnosed with Autism Spectrum Disorder who has disclosed sexual abuse to a teacher.",

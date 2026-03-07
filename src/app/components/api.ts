@@ -151,6 +151,27 @@ export async function confirmLicense(token: string, sessionId: string) {
   }, token);
 }
 
+// ---------- Video Registry ----------
+
+export async function getVideoRegistry(): Promise<Record<string, any>> {
+  return request("/videos");
+}
+
+export async function getAdminVideos(token: string) {
+  return request("/admin/videos", {}, token);
+}
+
+export async function updateVideoEntry(
+  token: string,
+  videoId: string,
+  data: { url?: string; status?: string }
+) {
+  return request(`/admin/videos/${videoId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }, token);
+}
+
 export async function rootyChat(
   token: string | null,
   messages: Array<{ role: "user" | "assistant"; text: string }>
