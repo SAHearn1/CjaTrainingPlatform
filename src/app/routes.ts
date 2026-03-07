@@ -17,6 +17,7 @@ const Licensing = lazy(() => import("./components/Licensing").then(m => ({ defau
 const LicensingSuccess = lazy(() => import("./components/LicensingSuccess").then(m => ({ default: m.LicensingSuccess })));
 const UserManagement = lazy(() => import("./components/UserManagement").then(m => ({ default: m.UserManagement })));
 const AuditLog = lazy(() => import("./components/AuditLog").then(m => ({ default: m.AuditLog })));
+const Settings = lazy(() => import("./components/Settings").then(m => ({ default: m.Settings })));
 
 export const router = createBrowserRouter([
   {
@@ -45,6 +46,7 @@ export const router = createBrowserRouter([
           { path: "admin/audit", Component: AuditLog },
           { path: "licensing", Component: Licensing },
           { path: "licensing/success", Component: LicensingSuccess },
+          { path: "settings", Component: Settings },
         ],
       },
     ],
