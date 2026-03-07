@@ -4,18 +4,18 @@
  * Uses brand icon assets for all five phases.
  *
  * Asset mapping:
- *   Root       → d4082f51… (plant with roots)
- *   Regulate   → 80b12299… (hands cradling plant with roots)
- *   Reflect    → 97f5d9bd… (head with leaf / thought bubbles — introspection)
- *   Restore    → d1d90c77… (leaves with radiant light — renewal)
- *   Reconnect  → 994430be… (two faces with heart & growing plant)
+ *   Root       → phase-root.png (plant with roots)
+ *   Regulate   → phase-regulate.png (hands cradling plant with roots)
+ *   Reflect    → phase-reflect.png (head with leaf / thought bubbles — introspection)
+ *   Restore    → phase-restore.png (leaves with radiant light — renewal)
+ *   Reconnect  → phase-reconnect.png (two faces with heart & growing plant)
  */
 
-import rootIcon from "@/assets/d4082f517d888310790b6ba55649de5b4495e42a.png";
-import regulateIcon from "@/assets/80b122995af3c6ba8f50b872adae3c892699e1ca.png";
-import reflectIcon from "@/assets/97f5d9bd4c328aedf7e07443f890d06401ccd697.png";
-import restoreIcon from "@/assets/d1d90c77434f638109ff656a22165c8e60b881a5.png";
-import reconnectIcon from "@/assets/994430be09302c9f3d93db524829bcf8847611c9.png";
+import rootIcon from "@/assets/phase-root.png";
+import regulateIcon from "@/assets/phase-regulate.png";
+import reflectIcon from "@/assets/phase-reflect.png";
+import restoreIcon from "@/assets/phase-restore.png";
+import reconnectIcon from "@/assets/phase-reconnect.png";
 
 /** Phase → brand icon asset */
 const PHASE_ASSET: Record<string, string | null> = {
