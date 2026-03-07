@@ -37,6 +37,8 @@
   --leaf: #2D5E4E;
   --gold-leaf: #C9A84C;
   --gold-light: #E8D484;
+  /* Accessible gold for text on light backgrounds (meets WCAG AA 4.5:1) */
+  --gold-text: #7A5C00;
   --canvas-light: #F2F4CA;
   --canvas-mid: #DFE1B0;
   --gals-pink: #E0479E;
@@ -110,6 +112,8 @@
   --sidebar-accent-foreground: #C9A84C;
   --sidebar-border: rgba(201,168,76,0.2);
   --sidebar-ring: rgba(201,168,76,0.4);
+  /* In dark mode, full gold passes on dark backgrounds */
+  --gold-text: #C9A84C;
 }
 
 @theme inline {

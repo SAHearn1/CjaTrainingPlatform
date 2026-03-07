@@ -861,12 +861,12 @@ export function Landing() {
             transition={{ duration: 0.6 }}
             className="text-center max-w-3xl mx-auto"
           >
-            <p className="uppercase tracking-[0.2em] text-xs font-medium mb-3" style={{ color: "#C9A84C" }}>
+            <p className="uppercase tracking-[0.2em] text-xs font-medium mb-3" style={{ color: "var(--gold-text)" }}>
               Why This Platform Exists
             </p>
             <h2 className="mb-6 leading-snug" style={{ fontFamily: "var(--font-display)" }}>
               Professionals who encounter children first shape whether that moment brings safety{" "}
-              <span style={{ color: "#C9A84C" }}>or further harm.</span>
+              <span style={{ color: "var(--gold-text)" }}>or further harm.</span>
             </h2>
             <p className="text-muted-foreground leading-relaxed">
               When a child discloses abuse, the professional's response in those first critical
@@ -888,7 +888,7 @@ export function Landing() {
             transition={{ duration: 0.6 }}
             className="text-center mb-10"
           >
-            <p className="uppercase tracking-[0.2em] text-xs font-medium mb-3" style={{ color: "#C9A84C" }}>
+            <p className="uppercase tracking-[0.2em] text-xs font-medium mb-3" style={{ color: "var(--gold-text)" }}>
               Design Principles
             </p>
             <h2 className="mb-3" style={{ fontFamily: "var(--font-display)" }}>
@@ -940,7 +940,7 @@ export function Landing() {
               transition={{ duration: 0.6 }}
               className="text-center mb-10"
             >
-              <p className="uppercase tracking-[0.2em] text-xs font-medium mb-3" style={{ color: "#C9A84C" }}>
+              <p className="uppercase tracking-[0.2em] text-xs font-medium mb-3" style={{ color: "var(--gold-text)" }}>
                 Pedagogical Framework
               </p>
               <h2 className="mb-3" style={{ fontFamily: "var(--font-display)" }}>
@@ -1040,7 +1040,7 @@ export function Landing() {
             transition={{ duration: 0.6 }}
             className="text-center mb-10"
           >
-            <p className="uppercase tracking-[0.2em] text-xs font-medium mb-3" style={{ color: "#C9A84C" }}>
+            <p className="uppercase tracking-[0.2em] text-xs font-medium mb-3" style={{ color: "var(--gold-text)" }}>
               Cognitive Model
             </p>
             <h2 className="mb-3" style={{ fontFamily: "var(--font-display)" }}>
@@ -1065,7 +1065,7 @@ export function Landing() {
               >
                 <TraceIcon letter={letter} size={40} />
                 <h3 className="text-sm font-bold mt-3 mb-1" style={{ color: "#082A19" }}>
-                  <span className="text-base" style={{ color: "#C9A84C", fontFamily: "var(--font-display)" }}>{letter}</span>
+                  <span className="text-base" style={{ color: "var(--gold-text)", fontFamily: "var(--font-display)" }}>{letter}</span>
                   {" "}&mdash; {TRACE_LABELS[letter].split(" ")[0]}
                 </h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">
@@ -1146,7 +1146,7 @@ export function Landing() {
             transition={{ duration: 0.6 }}
             className="text-center mb-10"
           >
-            <p className="uppercase tracking-[0.2em] text-xs font-medium mb-3" style={{ color: "#C9A84C" }}>
+            <p className="uppercase tracking-[0.2em] text-xs font-medium mb-3" style={{ color: "var(--gold-text)" }}>
               Questions & Answers
             </p>
             <h2 className="mb-3" style={{ fontFamily: "var(--font-display)" }}>
