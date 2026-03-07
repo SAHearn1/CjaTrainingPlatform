@@ -8,7 +8,7 @@
  * Asset: 0bfcc3c5… (TRACE icon sprite sheet)
  */
 
-import traceSprite from "figma:asset/0bfcc3c5045b8630852afe690b12a59a98623d13.png";
+import traceSprite from "@/assets/0bfcc3c5045b8630852afe690b12a59a98623d13.png";
 
 export type TraceLetter = "T" | "R" | "A" | "C" | "E";
 

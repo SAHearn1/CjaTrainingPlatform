@@ -11,11 +11,11 @@
  *   Reconnect  → 994430be… (two faces with heart & growing plant)
  */
 
-import rootIcon from "figma:asset/d4082f517d888310790b6ba55649de5b4495e42a.png";
-import regulateIcon from "figma:asset/80b122995af3c6ba8f50b872adae3c892699e1ca.png";
-import reflectIcon from "figma:asset/97f5d9bd4c328aedf7e07443f890d06401ccd697.png";
-import restoreIcon from "figma:asset/d1d90c77434f638109ff656a22165c8e60b881a5.png";
-import reconnectIcon from "figma:asset/994430be09302c9f3d93db524829bcf8847611c9.png";
+import rootIcon from "@/assets/d4082f517d888310790b6ba55649de5b4495e42a.png";
+import regulateIcon from "@/assets/80b122995af3c6ba8f50b872adae3c892699e1ca.png";
+import reflectIcon from "@/assets/97f5d9bd4c328aedf7e07443f890d06401ccd697.png";
+import restoreIcon from "@/assets/d1d90c77434f638109ff656a22165c8e60b881a5.png";
+import reconnectIcon from "@/assets/994430be09302c9f3d93db524829bcf8847611c9.png";
 
 /** Phase → brand icon asset */
 const PHASE_ASSET: Record<string, string | null> = {
