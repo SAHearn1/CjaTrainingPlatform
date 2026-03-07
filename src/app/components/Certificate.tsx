@@ -11,10 +11,11 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useAuth } from "./AuthContext";
-import { useMemo } from "react";
+import { useState, useEffect } from "react";
+import { generateCertificate } from "./api";
 
 export function Certificate() {
-  const { profile, progress: userProgress } = useAuth();
+  const { profile, progress: userProgress, accessToken } = useAuth();
   const displayName = profile?.name || "Learner";
   const displayRole = profile?.role || "cpi";
 
@@ -32,10 +33,22 @@ export function Certificate() {
     forensic: "Forensic Interviewer",
   };
 
-  const certId = useMemo(
-    () => "RW-2026-" + Math.random().toString(36).substring(2, 8).toUpperCase(),
-    []
-  );
+  const [certId, setCertId] = useState<string | null>(null);
+  const [certIssuedAt, setCertIssuedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (completedModules.length === 0 || !accessToken || certId) return;
+    generateCertificate(accessToken)
+      .then((data) => {
+        setCertId(data.certificate?.certId ?? null);
+        setCertIssuedAt(data.certificate?.issuedAt ?? null);
+      })
+      .catch((err) => console.error("Failed to load certificate:", err));
+  }, [completedModules.length, accessToken]);
+
+  const formattedDate = certIssuedAt
+    ? new Date(certIssuedAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+    : "—";
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
@@ -139,13 +152,13 @@ export function Certificate() {
                       <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
                         <Calendar className="w-3 h-3" /> Date
                       </div>
-                      <p className="text-xs">March 6, 2026</p>
+                      <p className="text-xs">{formattedDate}</p>
                     </div>
                     <div>
                       <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
                         <Hash className="w-3 h-3" /> Certificate ID
                       </div>
-                      <p className="text-xs font-mono">{certId}</p>
+                      <p className="text-xs font-mono">{certId ?? "—"}</p>
                     </div>
                     <div>
                       <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
