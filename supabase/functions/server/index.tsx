@@ -67,6 +67,9 @@ async function auditLog(
 
 // ---------- Auth helpers ----------
 
+// CJIS 5.4: Roles with administrative privileges.
+const ADMIN_ROLES: string[] = ["admin", "superadmin"];
+
 function supabaseAdmin() {
   return createClient(
     Deno.env.get("SUPABASE_URL"),
@@ -81,6 +84,14 @@ async function getUserId(c: any): Promise<string | null> {
   const { data, error } = await supabase.auth.getUser(token);
   if (error || !data?.user?.id) return null;
   return data.user.id;
+}
+
+// ── CJIS 5.4: Role-based access control helper ──
+// Reads user:{userId}:profile from KV and returns the stored role.
+// Defaults to "learner" when no profile exists or role is unset.
+async function getUserRole(userId: string): Promise<string> {
+  const profile = await encryptedGet<{ role?: string }>(kv.get, `user:${userId}:profile`);
+  return profile?.role || "learner";
 }
 
 // ---------- Health ----------
@@ -422,6 +433,13 @@ app.get("/make-server-39a35780/admin/stats", async (c) => {
   const userId = await getUserId(c);
   if (!userId) return c.json({ error: "Unauthorized: admin stats" }, 401);
   try {
+    // CJIS 5.4: Enforce least-privilege — only admin/superadmin may view stats
+    const requesterRole = await getUserRole(userId);
+    if (!ADMIN_ROLES.includes(requesterRole)) {
+      await auditLog("security:permission_denied", userId, "denied", "Attempted admin stats access without permission", c);
+      return c.json({ error: "Forbidden: insufficient privileges for admin stats" }, 403);
+    }
+
     // Audit: admin dashboard access
     await auditLog("admin:dashboard_access", userId, "success", "Admin stats requested", c);
     // Get all user profiles to count learners
@@ -498,11 +516,9 @@ app.get("/make-server-39a35780/admin/users", async (c) => {
   const userId = await getUserId(c);
   if (!userId) return c.json({ error: "Unauthorized: admin users list" }, 401);
   try {
-    // Verify the requesting user is admin/superadmin
-    const requesterProfile = await encryptedGet<any>(kv.get, `user:${userId}:profile`);
-    const requesterRole = requesterProfile?.role || "learner";
-    const adminRoles = ["admin", "superadmin"];
-    if (!adminRoles.includes(requesterRole)) {
+    // CJIS 5.4: Enforce least-privilege — only admin/superadmin may manage users
+    const requesterRole = await getUserRole(userId);
+    if (!ADMIN_ROLES.includes(requesterRole)) {
       await auditLog("security:permission_denied", userId, "denied", "Attempted admin users list without permission", c);
       return c.json({ error: "Forbidden: insufficient privileges for user management" }, 403);
     }
@@ -546,12 +562,16 @@ app.put("/make-server-39a35780/admin/users/:targetUserId/role", async (c) => {
   if (!userId) return c.json({ error: "Unauthorized: role change" }, 401);
   const targetUserId = c.req.param("targetUserId");
   try {
-    // Verify the requesting user is admin/superadmin
-    const requesterProfile = await encryptedGet<any>(kv.get, `user:${userId}:profile`);
-    const requesterRole = requesterProfile?.role || "learner";
+    // CJIS 5.4: Enforce least-privilege — check basic admin access first, then tier rules
+    const requesterRole = await getUserRole(userId);
+
+    if (!ADMIN_ROLES.includes(requesterRole)) {
+      await auditLog("security:permission_denied", userId, "denied", "Attempted role change without admin privileges", c);
+      return c.json({ error: "Forbidden: insufficient privileges for role management" }, 403);
+    }
 
     // Only superadmin can promote to admin/superadmin
-    // admin can promote to supervisor or demote to learner roles
+    // admin can assign up to supervisor but not admin or superadmin
     const validRoles = [
       "law_enforcement", "cpi", "prosecutor", "judge", "medical",
       "school", "advocate", "forensic", "mandated_reporter",
@@ -563,15 +583,10 @@ app.put("/make-server-39a35780/admin/users/:targetUserId/role", async (c) => {
       return c.json({ error: `Invalid role: ${newRole}` }, 400);
     }
 
-    const elevatedRoles = ["admin", "superadmin"];
+    const elevatedRoles = ADMIN_ROLES;
     if (elevatedRoles.includes(newRole) && requesterRole !== "superadmin") {
       await auditLog("security:permission_denied", userId, "denied", `Attempted to assign ${newRole} without superadmin privileges`, c);
       return c.json({ error: "Only superadmin can assign admin/superadmin roles" }, 403);
-    }
-
-    if (requesterRole !== "admin" && requesterRole !== "superadmin") {
-      await auditLog("security:permission_denied", userId, "denied", "Attempted role change without admin privileges", c);
-      return c.json({ error: "Forbidden: insufficient privileges for role management" }, 403);
     }
 
     // Prevent self-demotion from superadmin (safety)
@@ -617,9 +632,8 @@ app.get("/make-server-39a35780/admin/audit", async (c) => {
   const userId = await getUserId(c);
   if (!userId) return c.json({ error: "Unauthorized: audit log access" }, 401);
   try {
-    // Only superadmin can view audit logs
-    const requesterProfile = await encryptedGet<any>(kv.get, `user:${userId}:profile`);
-    const requesterRole = requesterProfile?.role || "learner";
+    // CJIS 5.4: Only superadmin can view audit logs
+    const requesterRole = await getUserRole(userId);
     if (requesterRole !== "superadmin") {
       await auditLog("security:permission_denied", userId, "denied", "Attempted audit log access without superadmin", c);
       return c.json({ error: "Forbidden: only superadmin can access audit logs" }, 403);
