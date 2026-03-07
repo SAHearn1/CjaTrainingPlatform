@@ -7,13 +7,9 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import { createClient, type Session, type User } from "@supabase/supabase-js";
-import { projectId, publicAnonKey } from "/utils/supabase/info";
+import { type Session, type User } from "@supabase/supabase-js";
+import { supabase } from "./supabaseClient";
 import * as api from "./api";
-
-// Singleton Supabase client
-const supabaseUrl = `https://${projectId}.supabase.co`;
-const supabase = createClient(supabaseUrl, publicAnonKey);
 
 export interface UserProfile {
   userId: string;
@@ -69,6 +65,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Guard: prevent onAuthStateChange from calling loadUserData with a stale
   // token before initSession has had a chance to refresh it.
   const initCompleteRef = useRef(false);
+  // Guard: prevent concurrent/re-entrant loadUserData calls
+  const loadingUserDataRef = useRef(false);
 
   // Load session on mount
   useEffect(() => {
@@ -87,10 +85,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // AFTER the initial session bootstrap is complete.
           // During the first page load, initSession handles everything with
           // a force-refreshed token so we don't use a stale JWT here.
-          if (
-            initCompleteRef.current &&
-            (event === "SIGNED_IN" || event === "TOKEN_REFRESHED")
-          ) {
+          // Only reload user data on explicit sign-in; token refreshes just
+          // update the stored token (already set above) without re-fetching data.
+          if (initCompleteRef.current && event === "SIGNED_IN") {
             loadUserData(session.access_token);
           }
         } else {
@@ -150,11 +147,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loadUserData = async (token: string) => {
+    // Prevent concurrent/re-entrant calls (avoids 401 → refreshSession → TOKEN_REFRESHED loop)
+    if (loadingUserDataRef.current) return;
     // Validate token looks like a JWT (3 dot-separated parts) before making requests
     if (!token || token.split(".").length !== 3) {
       console.warn("loadUserData called with invalid token, skipping");
       return;
     }
+    loadingUserDataRef.current = true;
     try {
       // Fetch profile, progress, vignettes in parallel
       const [profileRes, progressRes, vignettesRes] = await Promise.allSettled([
@@ -173,29 +173,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setWatchedVignettes(vignettesRes.value?.watched || []);
       }
 
-      // If all failed with 401, try refreshing the session
+      // If all failed, try refreshing the session once
       const allFailed = [profileRes, progressRes, vignettesRes].every(
         (r) => r.status === "rejected"
       );
       if (allFailed) {
         console.warn("All user data requests failed, attempting session refresh...");
-        const { data } = await supabase.auth.refreshSession();
-        if (data?.session) {
-          // Retry once with the fresh token instead of relying on onAuthStateChange
-          const retryToken = data.session.access_token;
-          setAccessToken(retryToken);
-          const [p2, pr2, v2] = await Promise.allSettled([
-            api.getProfile(retryToken),
-            api.getProgress(retryToken),
-            api.getVignettes(retryToken),
-          ]);
-          if (p2.status === "fulfilled" && p2.value?.profile) setProfile(p2.value.profile);
-          if (pr2.status === "fulfilled") setProgress(pr2.value?.progress || []);
-          if (v2.status === "fulfilled") setWatchedVignettes(v2.value?.watched || []);
+        const { data, error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError || !data?.session) {
+          // Refresh failed — session is unrecoverable, sign out
+          console.warn("Session refresh failed, signing out:", refreshError?.message);
+          await supabase.auth.signOut();
+          return;
+        }
+        const retryToken = data.session.access_token;
+        setAccessToken(retryToken);
+        const [p2, pr2, v2] = await Promise.allSettled([
+          api.getProfile(retryToken),
+          api.getProgress(retryToken),
+          api.getVignettes(retryToken),
+        ]);
+        if (p2.status === "fulfilled" && p2.value?.profile) setProfile(p2.value.profile);
+        if (pr2.status === "fulfilled") setProgress(pr2.value?.progress || []);
+        if (v2.status === "fulfilled") setWatchedVignettes(v2.value?.watched || []);
+        // If still failing after refresh, sign out to prevent an infinite loop
+        const stillFailed = [p2, pr2, v2].every((r) => r.status === "rejected");
+        if (stillFailed) {
+          console.warn("User data still unavailable after refresh, signing out");
+          await supabase.auth.signOut();
         }
       }
     } catch (e) {
       console.error("Error loading user data:", e);
+    } finally {
+      loadingUserDataRef.current = false;
     }
   };
 

@@ -1,12 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { createClient } from "@supabase/supabase-js";
 import { Loader2, AlertCircle, CheckCircle2, KeyRound } from "lucide-react";
 import { PasswordStrengthMeter } from "./SecurityBadge";
 import { validatePassword } from "./security";
-import { projectId, publicAnonKey } from "/utils/supabase/info";
-
-const supabase = createClient(`https://${projectId}.supabase.co`, publicAnonKey);
+import { supabase } from "./supabaseClient";
 
 const REDIRECT_DELAY_MS = 2500;
 
