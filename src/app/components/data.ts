@@ -15,6 +15,22 @@ export const ROLES = [
 
 export type RoleId = (typeof ROLES)[number]["id"];
 
+/** Single canonical map of role IDs → human-readable labels (issue #37). */
+export const ROLE_LABELS: Record<string, string> = {
+  law_enforcement: "Law Enforcement Officer",
+  cpi: "Child Protective Investigator",
+  prosecutor: "Prosecuting Attorney",
+  judge: "Judicial Officer",
+  medical: "Medical Professional",
+  school: "School Personnel",
+  advocate: "Victim Advocate",
+  forensic: "Forensic Interviewer",
+  mandated_reporter: "Mandated Reporter",
+  supervisor: "Supervisor",
+  admin: "Administrator",
+  superadmin: "Super Administrator",
+};
+
 export interface Module {
   id: number;
   title: string;

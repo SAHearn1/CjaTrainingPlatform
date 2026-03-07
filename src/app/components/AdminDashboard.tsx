@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MODULES } from "./data";
+import { MODULES, ROLE_LABELS } from "./data";
 import {
   Users,
   TrendingUp,
@@ -50,22 +50,6 @@ function hexAlpha(hex: string, alpha: number) {
   const b = parseInt(hex.slice(5, 7), 16);
   return `rgba(${r},${g},${b},${alpha})`;
 }
-
-// Human-readable labels for role IDs
-const ROLE_LABELS: Record<string, string> = {
-  law_enforcement: "Law Enforcement",
-  cpi: "Child Protective Investigator",
-  prosecutor: "Prosecutor",
-  judge: "Judge",
-  medical: "Medical Professional",
-  school: "School Personnel",
-  advocate: "Victim Advocate",
-  forensic: "Forensic Interviewer",
-  mandated_reporter: "Mandated Reporter",
-  supervisor: "Supervisor",
-  admin: "Administrator",
-  superadmin: "Super Administrator",
-};
 
 interface AdminStatsData {
   totalLearners: number;
