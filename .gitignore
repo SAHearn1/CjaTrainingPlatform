@@ -5,3 +5,21 @@ dist/
 .env.*.local
 *.log
 .DS_Store
+# ── Security: credential and key files ──────────────────────────────────────
+*.pem
+*.key
+*.p12
+*.pfx
+*.cert
+*.crt
+secrets/
+serviceAccount*.json
+*-firebase-adminsdk-*.json
+firebase-adminsdk*.json
+.env.production
+.env.staging
+.env.development
+.env.test
+.vercel
+coverage/
+*.tsbuildinfo
