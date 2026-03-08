@@ -1,0 +1,50 @@
+# repo.intelligence.yml — CjaTrainingPlatform
+# ANTI-HALLUCINATION: fields populated only from direct source file reads
+# Fields marked TODO require Phase C deep read or human verification
+
+repository_name: CjaTrainingPlatform
+purpose: "RootWork Trauma-Informed Investigation Training Platform — CJIS-compliant LMS for child abuse investigation professionals"
+user_facing_surfaces:
+  - "Training platform web app (React SPA)"
+  - "PDF export (jspdf)"
+entrypoints:
+  - "src/ (Vite React app)"
+ui_layer: "React 18 + Vite + Tailwind CSS v4 + Radix UI + MUI"
+api_layer: "Supabase (direct client SDK)"
+auth_layer: "Supabase Auth (TODO — verify RLS configuration)"
+service_layer: "TODO — requires Phase C deep read of src/"
+data_layer: "Supabase PostgreSQL + @supabase/supabase-js"
+infrastructure_layer: "TODO — requires Phase C deep read (no Vercel/Firebase config detected)"
+external_integrations:
+  - "Supabase (database + auth + storage)"
+  - "Sentry (@sentry/react — error tracking)"
+  - "PostHog (posthog-js — product analytics)"
+environment_variables_referenced:
+  - "VITE_SUPABASE_URL"
+  - "VITE_SUPABASE_ANON_KEY"
+  - "TODO — full list requires reading .env.example"
+key_routes:
+  - "TODO — requires Phase C deep read of src/"
+key_services:
+  - "TODO — requires Phase C deep read"
+key_jobs_or_workers:
+  - "TODO — requires Phase C deep read"
+critical_dependencies:
+  - "@supabase/supabase-js ^2.98.0"
+  - "@sentry/react ^9.0.0"
+  - "react 18.3.1"
+  - "react-router 7.13.0"
+  - "jspdf ^4.2.0"
+likely_failure_hotspots:
+  - "Supabase RLS policy mismatches"
+  - "Supabase auth token expiry handling"
+  - "VITE_SUPABASE_* env vars missing in deployment"
+  - "pnpm version mismatch (uses pnpm overrides for vite 6.3.5)"
+local_dev_commands:
+  - "pnpm dev"
+build_commands:
+  - "pnpm build"
+  - "pnpm typecheck"
+test_commands:
+  - "pnpm test"
+  - "pnpm test:coverage"
