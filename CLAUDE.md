@@ -1,13 +1,13 @@
-# CLAUDE.md â€” CjaTrainingPlatform
+# CLAUDE.md — CjaTrainingPlatform
 
 > Agent briefing document. Read this before touching any code.
 > Governance hub: `SAHearn1/rwfw-agent-governance`
 
 ## Repo Identity
 
-- **Purpose:** Criminal Justice AI Training Platform â€” CJIS-compliant learning environment
+- **Purpose:** Criminal Justice AI Training Platform — CJIS-compliant learning environment
 - **Tier:** 1 (production-critical)
-- **Criticality:** HIGH â€” handles sensitive criminal justice data
+- **Criticality:** HIGH — handles sensitive criminal justice data
 
 ## Stack
 
@@ -21,10 +21,10 @@
 
 ## Before You Write Any Code
 
-1. Read `repo.intelligence.yml` â€” authoritative stack profile
-2. Read `docs/ARCHITECTURE_MAP.md` â€” component/service map
-3. Read `docs/RUNTIME_MAP.md` â€” env vars, ports, scripts
-4. Check `docs/INCIDENTS.md` â€” known active issues
+1. Read `repo.intelligence.yml` — authoritative stack profile
+2. Read `docs/ARCHITECTURE_MAP.md` — component/service map
+3. Read `docs/RUNTIME_MAP.md` — env vars, ports, scripts
+4. Check `docs/INCIDENTS.md` — known active issues
 
 ## Critical Rules for This Repo
 
@@ -32,13 +32,13 @@
 - **RLS is the security boundary.** Every Supabase table has row-level security. Never bypass it. Never set `.from().select()` without understanding which policy applies.
 - **Sentry is active.** All unhandled errors are captured. Do not swallow errors silently.
 - **Auth state must be verified before any data access.** Check `supabase.auth.getSession()` before reads/writes.
-- **No `git add .`** â€” stage specific files only.
+- **No `git add .`** — stage specific files only.
 
 ## Dev Workflow
 
 ```bash
 npm install
-npm run dev          # Vite dev server â€” http://localhost:5173
+npm run dev          # Vite dev server — http://localhost:5173
 npm run lint
 npm run type-check
 npm run build
@@ -61,3 +61,9 @@ See `docs/DEBUG_PLAYBOOK.md` for Supabase/Sentry failure tables.
 
 All agents operating here must follow `AGENTS.md` (8 rules).  
 Incidents logged to `docs/INCIDENTS.md`. Fix recipes in `docs/REPAIR_PATTERNS.md`.
+
+## Operating Rules
+
+**If you resolve a bug during this session, you MUST append an entry to `docs/INCIDENTS.md` before the session ends. This is non-negotiable. Session is not complete until the entry is committed.**
+
+See Rule 7 in `AGENTS.md` (governance hub: `SAHearn1/rwfw-agent-governance`) for the full incident logging protocol.
