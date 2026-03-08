@@ -39,7 +39,7 @@ interface AuthState {
   progress: ModuleProgress[];
   watchedVignettes: string[];
 
-  signUp: (email: string, password: string, name: string) => Promise<void>;
+  signUp: (email: string, password: string, name: string) => Promise<{ needsConfirmation?: boolean }>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -216,8 +216,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await loadUserData(session.access_token);
   };
 
-  const signUp = useCallback(async (email: string, password: string, name: string) => {
+  const signUp = useCallback(async (email: string, password: string, name: string): Promise<{ needsConfirmation?: boolean }> => {
     // Create user via server (uses admin API) — if user already exists, fall back to sign-in
+    let userAlreadyExisted = false;
     try {
       await api.signUp(email, password, name);
     } catch (e: any) {
@@ -226,14 +227,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!msg.includes("already") && !msg.includes("Already")) {
         throw e;
       }
+      userAlreadyExisted = true;
       console.log("User already exists, falling back to sign-in");
     }
-    // Sign in (works for both new and existing users)
+
+    // Attempt to sign in immediately. For new users with email confirmation enabled,
+    // this will fail with "Email not confirmed" — surface that as needsConfirmation.
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw new Error(`Sign-in after signup failed: ${error.message}`);
+
+    if (error) {
+      const msg = error.message?.toLowerCase() || "";
+      // Email not yet confirmed — tell the UI to show the "check your email" screen
+      if (msg.includes("email not confirmed") || msg.includes("email_not_confirmed")) {
+        return { needsConfirmation: true };
+      }
+      throw new Error(`Sign-in after signup failed: ${error.message}`);
+    }
+
     if (data?.session) {
       await handleSession(data.session);
-      // Ensure profile exists
+      // Ensure profile exists (for existing users or auto-confirmed accounts)
       try {
         const { profile: existingProfile } = await api.getProfile(data.session.access_token);
         if (existingProfile) {
@@ -244,12 +257,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (p) setProfile(p);
         }
       } catch {
-        // Profile fetch/create is best-effort on signup
         await api.updateProfile(data.session.access_token, { name, email });
         const { profile: p } = await api.getProfile(data.session.access_token);
         if (p) setProfile(p);
       }
     }
+
+    return {};
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {

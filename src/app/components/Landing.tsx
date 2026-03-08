@@ -41,6 +41,7 @@ import {
   Volume2,
   VolumeX,
   ArrowDown,
+  Mail,
 } from "lucide-react";
 
 /* ─── icon map (roles) ─── */
@@ -437,7 +438,7 @@ function AuthModal({
   const { user, profile, signIn, signUp, updateProfile, resetPassword } = useAuth();
 
   const [mode, setMode] = useState<"signin" | "signup" | "reset">(defaultMode);
-  const [step, setStep] = useState<"auth" | "role">("auth");
+  const [step, setStep] = useState<"auth" | "role" | "confirm">("auth");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -469,8 +470,12 @@ function AuthModal({
     try {
       if (mode === "signup") {
         if (!name || !email || !password) { setError("Please fill in all fields"); return; }
-        await signUp(email, password, name);
-        setStep("role");
+        const result = await signUp(email, password, name);
+        if (result?.needsConfirmation) {
+          setStep("confirm");
+        } else {
+          setStep("role");
+        }
       } else {
         if (!email || !password) { setError("Please enter email and password"); return; }
         await signIn(email, password);
@@ -688,6 +693,42 @@ function AuthModal({
                   </div>
                 </>
               )}
+            </motion.div>
+          ) : step === "confirm" ? (
+            <motion.div
+              key="confirm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="text-center py-4"
+            >
+              <div
+                className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
+                style={{ background: "rgba(8,42,25,0.08)" }}
+              >
+                <Mail className="w-8 h-8" style={{ color: "#082A19" }} />
+              </div>
+              <h2 className="mb-2">Check Your Inbox</h2>
+              <p className="text-muted-foreground text-sm mb-4">
+                We sent a confirmation link to <strong>{email}</strong>.
+                Click the link to activate your account, then sign in.
+              </p>
+              <div className="p-3 rounded-lg text-xs text-muted-foreground mb-6" style={{ background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.2)" }}>
+                Didn't receive it? Check your spam folder or{" "}
+                <button
+                  className="underline hover:text-foreground transition-colors"
+                  onClick={() => { setStep("auth"); setMode("signup"); setError(null); }}
+                >
+                  try again
+                </button>
+                .
+              </div>
+              <button
+                onClick={() => { setStep("auth"); setMode("signin"); setError(null); }}
+                className="w-full bg-primary text-primary-foreground py-3 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+              >
+                Go to Sign In <ArrowRight className="w-4 h-4" />
+              </button>
             </motion.div>
           ) : (
             <motion.div

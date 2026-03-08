@@ -133,8 +133,6 @@ app.post("/make-server-39a35780/signup", async (c) => {
       email,
       password,
       user_metadata: { name },
-      // Automatically confirm the user's email since an email server hasn't been configured.
-      email_confirm: true,
     });
     if (error) {
       console.log("Signup error:", error.message);
