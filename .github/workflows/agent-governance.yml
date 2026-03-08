@@ -1,0 +1,43 @@
+# RWFW Governance Workflow — CjaTrainingPlatform
+# Validates governance compliance on governance install PRs
+# Additive only — does NOT interfere with product CI
+
+name: Agent Governance
+
+on:
+  pull_request:
+    branches: ['**']
+
+jobs:
+  validate-governance:
+    name: Governance Compliance
+    runs-on: ubuntu-latest
+    if: contains(github.head_ref, 'agent-operating-system-install') || contains(github.head_ref, 'governance')
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check required governance files
+        run: |
+          MISSING=0
+          for f in AGENTS.md .github/PULL_REQUEST_TEMPLATE.md .github/ISSUE_TEMPLATE/bug_report.md repo.intelligence.yml; do
+            if [ ! -f "$f" ]; then echo "MISSING: $f"; MISSING=$((MISSING+1)); else echo "OK: $f"; fi
+          done
+          [ $MISSING -eq 0 ] || exit 1
+
+      - name: Check PR template required sections
+        run: |
+          MISSING=0
+          for s in "Root Cause" "Verification Evidence" "Files Changed" "Regression"; do
+            grep -q "$s" .github/PULL_REQUEST_TEMPLATE.md && echo "OK: $s" || { echo "MISSING: $s"; MISSING=$((MISSING+1)); }
+          done
+          [ $MISSING -eq 0 ] || exit 1
+
+      - name: Check repo.intelligence.yml no blank fields
+        run: |
+          if [ -f repo.intelligence.yml ]; then
+            if grep -E '^[a-z_]+: ""$' repo.intelligence.yml; then
+              echo "ERROR: blank fields in repo.intelligence.yml"; exit 1
+            fi
+          fi
+          echo "Governance validation passed."
