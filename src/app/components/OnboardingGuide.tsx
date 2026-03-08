@@ -43,7 +43,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
     description: "Your trauma-informed investigation training journey starts here.",
     icon: <TreePine className="w-6 h-6" />,
     detail:
-      "RootWork is a comprehensive training platform designed for professionals across 8 disciplines who investigate suspected child abuse and neglect. This guided tour will walk you through every feature so you feel confident navigating the platform.",
+      "RootWork is a comprehensive training platform designed for professionals across 9 disciplines who investigate suspected child abuse and neglect. This guided tour will walk you through every feature so you feel confident navigating the platform.",
     tip: "You can revisit this tour anytime from the help button in the bottom-right corner.",
     visual: "welcome",
   },
@@ -76,7 +76,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     id: "modules",
-    title: "6 Training Modules",
+    title: "7 Training Modules",
     description: "Structured learning content from foundations to advanced practice.",
     icon: <BookOpen className="w-6 h-6" />,
     detail:

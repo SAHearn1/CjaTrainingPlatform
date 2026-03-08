@@ -203,24 +203,38 @@ function RootyChatbot() {
 
     try {
       const apiUrl = `https://${projectId}.supabase.co/functions/v1/make-server-39a35780/rooty/chat`;
-      const resp = await fetch(apiUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "apikey": publicAnonKey,
-          Authorization: `Bearer ${publicAnonKey}`,
-        },
-        body: JSON.stringify({ messages: updated }),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      if (!resp.ok) throw new Error(`API error ${resp.status}`);
-      const data = await resp.json();
-      if (data.error) throw new Error(data.error);
+      try {
+        const resp = await fetch(apiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": publicAnonKey,
+            Authorization: `Bearer ${publicAnonKey}`,
+          },
+          body: JSON.stringify({ messages: updated }),
+          signal: controller.signal,
+        });
 
-      setMessages((prev) => [...prev, { role: "assistant", text: data.reply }]);
-      speakText(data.reply);
-    } catch (e) {
-      console.log("Rooty Gemini API error, using fallback:", e);
+        clearTimeout(timeoutId);
+
+        if (!resp.ok) throw new Error(`API error ${resp.status}`);
+        const data = await resp.json();
+        if (data.error) throw new Error(data.error);
+
+        const reply = typeof data.reply === "string" && data.reply.trim()
+          ? data.reply
+          : null;
+        if (!reply) throw new Error("Empty reply from API");
+
+        setMessages((prev) => [...prev, { role: "assistant", text: reply }]);
+        speakText(reply);
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    } catch {
       const response = getRootyResponse(trimmed);
       setMessages((prev) => [...prev, { role: "assistant", text: response }]);
       speakText(response);
