@@ -481,7 +481,13 @@ function AuthModal({
         await signIn(email, password);
       }
     } catch (e: any) {
-      setError(e.message || "Authentication failed");
+      const msg = e?.message || "";
+      const lower = msg.toLowerCase();
+      if (lower.includes("too many") || lower.includes("rate limit") || lower.includes("locked") || lower.includes("over_request_rate_limit")) {
+        setError("Too many failed sign-in attempts. Please wait a few minutes before trying again, or use \"Forgot password\" to reset your credentials.");
+      } else {
+        setError(msg || "Authentication failed");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -519,7 +525,7 @@ function AuthModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center">
+    <div role="dialog" aria-modal="true" aria-label="Sign in or create account" className="fixed inset-0 z-40 flex items-center justify-center">
       {/* Backdrop */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -538,6 +544,7 @@ function AuthModal({
       >
         <button
           onClick={onClose}
+          aria-label="Close dialog"
           className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
         >
           <X className="w-5 h-5" />
@@ -566,7 +573,7 @@ function AuthModal({
                   </p>
 
                   {error && (
-                    <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 flex items-center gap-2">
+                    <div role="alert" className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
                       <p className="text-sm text-red-700">{error}</p>
                     </div>
@@ -615,7 +622,7 @@ function AuthModal({
                   </p>
 
                   {error && (
-                    <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 flex items-center gap-2">
+                    <div role="alert" className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
                       <p className="text-sm text-red-700">{error}</p>
                     </div>
@@ -743,7 +750,7 @@ function AuthModal({
               </p>
 
               {error && (
-                <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 flex items-center gap-2">
+                <div role="alert" className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
                   <p className="text-sm text-red-700">{error}</p>
                 </div>

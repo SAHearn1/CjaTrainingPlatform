@@ -4,6 +4,7 @@ import { Landing } from "./components/Landing";
 import { Layout } from "./components/Layout";
 import { RootWrapper } from "./components/RootWrapper";
 import { ResetPassword } from "./components/ResetPassword";
+import { CertificateVerify } from "./components/CertificateVerify";
 
 // Lazy-loaded route components for code splitting
 const Dashboard = lazy(() => import("./components/Dashboard").then(m => ({ default: m.Dashboard })));
@@ -34,6 +35,10 @@ export const router = createBrowserRouter([
       {
         path: "reset-password",
         Component: ResetPassword,
+      },
+      {
+        path: "verify/:certId",
+        Component: CertificateVerify,
       },
       {
         Component: Layout,

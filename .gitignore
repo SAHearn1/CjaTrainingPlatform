@@ -5,6 +5,7 @@ dist/
 .env.*.local
 *.log
 .DS_Store
+
 # ── Security: credential and key files ──────────────────────────────────────
 *.pem
 *.key
@@ -23,3 +24,45 @@ firebase-adminsdk*.json
 .vercel
 coverage/
 *.tsbuildinfo
+
+# AI tool config dirs
+.adal/
+.agent/
+.agents/
+.augment/
+.claude/
+.codebuddy/
+.commandcode/
+.continue/
+.cortex/
+.crush/
+.factory/
+.goose/
+.iflow/
+.junie/
+.kilocode/
+.kiro/
+.kode/
+.mcpjam/
+.mux/
+.neovate/
+.openhands/
+.pi/
+.pochi/
+.qoder/
+.qwen/
+.roo/
+.trae/
+.vibe/
+.windsurf/
+.zencoder/
+
+# Claude Code skills
+skills/
+skills-lock.json
+
+# Supabase temp
+supabase/.temp/
+
+# Stale Figma Make server copy
+supabase/functions/make-server-39a35780/

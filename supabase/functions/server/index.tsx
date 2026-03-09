@@ -124,7 +124,7 @@ app.post("/make-server-39a35780/signup", async (c) => {
   const ip = c.req.header("x-forwarded-for") || c.req.header("cf-connecting-ip") || "unknown";
   if (!checkRateLimit(ip)) return c.json({ error: "Too many requests. Please try again later." }, 429);
   try {
-    const { email, password, name } = await c.req.json();
+    const { email, password, name, role } = await c.req.json();
     if (!email || !password || !name) {
       return c.json({ error: "Missing email, password, or name" }, 400);
     }
@@ -138,6 +138,17 @@ app.post("/make-server-39a35780/signup", async (c) => {
       console.log("Signup error:", error.message);
       return c.json({ error: `Signup failed: ${error.message}` }, 400);
     }
+    // Create initial profile so it exists before role-selection step
+    const now = new Date().toISOString();
+    const initialProfile = {
+      userId: data.user.id,
+      name,
+      email,
+      role: role || "learner",
+      joinedAt: now,
+      updatedAt: now,
+    };
+    await encryptedSet(kv.set, `user:${data.user.id}:profile`, initialProfile);
     // Audit: successful signup
     await auditLog("auth:signup", data.user.id, "success", `New user created: ${email}`, c);
     return c.json({ user: { id: data.user.id, email: data.user.email } });
@@ -316,16 +327,30 @@ app.post("/make-server-39a35780/certificates/generate", async (c) => {
     const uuid = crypto.randomUUID().replace(/-/g, "").substring(0, 8).toUpperCase();
     const certId = `RW-${year}-${uuid}`;
 
+    // Fetch profile for learner name/role (best-effort)
+    const profile = await encryptedGet<{ name?: string; role?: string }>(kv.get, `user:${userId}:profile`);
+
     const certificate = {
       certId,
       userId,
       issuedAt: new Date().toISOString(),
       completedModules: completedModules.length,
+      totalModules: 7,
+    };
+
+    // Public cert record includes display fields but NOT userId for privacy
+    const publicCert = {
+      certId,
+      issuedAt: certificate.issuedAt,
+      completedModules: certificate.completedModules,
+      totalModules: certificate.totalModules,
+      learnerName: profile?.name || "Learner",
+      role: profile?.role || "learner",
     };
 
     // Persist by user (for GET /certificates) and by certId (for public verification)
     await kv.set(`user:${userId}:certificate`, certificate);
-    await kv.set(`cert:${certId}`, { certId, userId, issuedAt: certificate.issuedAt });
+    await kv.set(`cert:${certId}`, publicCert);
 
     await auditLog("certificate_generate", userId, "success", `certId=${certId}`, c);
     return c.json({ certificate });

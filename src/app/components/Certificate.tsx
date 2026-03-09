@@ -186,9 +186,16 @@ export function Certificate() {
               <button onClick={handleDownloadPDF} className="px-5 py-2.5 bg-primary text-primary-foreground rounded-full text-sm hover:opacity-90 flex items-center gap-2">
                 <Download className="w-4 h-4" /> Download PDF
               </button>
-              <button className="px-5 py-2.5 border border-border rounded-full text-sm hover:bg-secondary flex items-center gap-2">
-                <ExternalLink className="w-4 h-4" /> Verification Link
-              </button>
+              {certId && (
+                <a
+                  href={`/verify/${certId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-5 py-2.5 border border-border rounded-full text-sm hover:bg-secondary flex items-center gap-2"
+                >
+                  <ExternalLink className="w-4 h-4" /> Verification Link
+                </a>
+              )}
             </div>
           </div>
 

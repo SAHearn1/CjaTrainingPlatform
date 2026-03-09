@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router";
 import { MODULES, PHASE_VIGNETTES } from "./data";
 import {
@@ -78,6 +78,45 @@ export function ModuleDetail() {
       setSelectedState(profile.selectedState);
     }
   }, [profile?.selectedState]);
+
+  // ── Time tracking (#67) ──
+  // Accumulate seconds spent on this module page and persist every 60 s.
+  const sessionStartRef = useRef<number>(Date.now());
+
+  const flushTimeSpent = useCallback(() => {
+    const elapsed = Math.floor((Date.now() - sessionStartRef.current) / 1000);
+    sessionStartRef.current = Date.now();
+    if (elapsed > 0 && module) {
+      const existing = userProgress.find((p) => p.moduleId === module.id)?.timeSpent || 0;
+      updateModuleProgress(module.id, { timeSpent: existing + elapsed }).catch(() => {/* non-blocking */});
+    }
+  }, [module, userProgress, updateModuleProgress]);
+
+  useEffect(() => {
+    if (!module) return;
+    sessionStartRef.current = Date.now();
+
+    // Sync every 60 s while the tab is visible
+    const interval = setInterval(flushTimeSpent, 60_000);
+
+    // Pause timer when tab is hidden, resume when visible
+    const handleVisibility = () => {
+      if (document.hidden) {
+        flushTimeSpent();
+      } else {
+        sessionStartRef.current = Date.now();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      flushTimeSpent(); // write final elapsed time on unmount
+    };
+    // Run only when the module changes or the flush function updates
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [module?.id]);
 
   const handleStateSelect = (abbrev: string) => {
     setSelectedState(abbrev);

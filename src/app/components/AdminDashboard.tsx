@@ -441,18 +441,6 @@ function AdminDashboardInner() {
           animate={{ opacity: 1, y: 0 }}
           className="space-y-3"
         >
-          {/* ⚠️ Sample data notice — this tab does not yet pull from the live API */}
-          <div
-            className="flex items-start gap-3 px-4 py-3 rounded-lg border"
-            style={{ background: "var(--accent)", borderColor: "rgba(var(--gold-leaf, 201 168 76) / 0.35)" }}
-            role="alert"
-          >
-            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: "var(--gold-leaf, #C9A84C)" }} />
-            <p className="text-xs text-accent-foreground">
-              <span className="font-medium">Sample data displayed.</span> The individual learner list is not yet
-              wired to the live API. The records below are illustrative only and do not represent real learners.
-            </p>
-          </div>
           <div className="bg-card rounded-xl border border-border overflow-hidden">
           <div className="p-4 border-b border-border flex items-center gap-3">
             <div className="relative flex-1 max-w-sm">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router";
 import { MODULES } from "./data";
 import {
@@ -17,12 +17,50 @@ import { TTSControls, InlineTTSButton } from "./TTSControls";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { useAuth } from "./AuthContext";
 
+/**
+ * Mulberry32 seeded PRNG — deterministic per seed.
+ * Returns a function that produces numbers in [0, 1).
+ */
+function seededRng(seed: number) {
+  let s = seed;
+  return () => {
+    s |= 0;
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Fisher-Yates shuffle using a seeded RNG (returns a new array). */
+function shuffleWithSeed<T>(arr: T[], seed: number): T[] {
+  const rng = seededRng(seed);
+  const out = [...arr];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
 export function Assessment() {
   const { moduleId, type } = useParams();
   const navigate = useNavigate();
   const module = MODULES.find((m) => m.id === Number(moduleId));
   const assessment = type === "pre" ? module?.preAssessment : module?.postAssessment;
-  const { updateModuleProgress } = useAuth();
+  const { updateModuleProgress, user } = useAuth();
+
+  // Shuffle questions once per session using a seed derived from userId + moduleId + type.
+  // This gives each user a consistent but unique ordering.
+  const shuffledQuestions = useMemo(() => {
+    if (!assessment?.questions) return [];
+    const userId = user?.id || "anon";
+    let seed = 0;
+    for (let i = 0; i < userId.length; i++) seed = ((seed << 5) - seed + userId.charCodeAt(i)) | 0;
+    seed = (seed ^ Number(moduleId) * 31) | 0;
+    seed = (seed ^ (type === "pre" ? 7 : 13)) | 0;
+    return shuffleWithSeed(assessment.questions, seed >>> 0);
+  }, [assessment, user?.id, moduleId, type]);
 
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -43,8 +81,8 @@ export function Assessment() {
     );
   }
 
-  const question = assessment.questions[currentQuestion];
-  const totalQuestions = assessment.questions.length;
+  const question = shuffledQuestions[currentQuestion];
+  const totalQuestions = shuffledQuestions.length;
   const isLastQuestion = currentQuestion === totalQuestions - 1;
 
   const handleSelect = (index: number) => {
@@ -67,7 +105,7 @@ export function Assessment() {
       const finalAnswers = [...answers];
       finalAnswers[currentQuestion] = selectedAnswer;
       const correct = finalAnswers.filter(
-        (a, i) => a === assessment.questions[i]?.correctIndex
+        (a, i) => a === shuffledQuestions[i]?.correctIndex
       ).length;
       const finalScore = Math.round((correct / totalQuestions) * 100);
       const field = type === "pre" ? "preAssessmentScore" : "postAssessmentScore";
@@ -83,7 +121,7 @@ export function Assessment() {
   };
 
   const correctCount = answers.filter(
-    (a, i) => a === assessment.questions[i]?.correctIndex
+    (a, i) => a === shuffledQuestions[i]?.correctIndex
   ).length;
   const score = Math.round((correctCount / totalQuestions) * 100);
   const passed = score >= 70;
@@ -151,7 +189,7 @@ export function Assessment() {
 
             <div className="text-left space-y-4 mb-8">
               <h3 className="text-sm flex items-center gap-2"><BookOpenText className="w-4 h-4" /> Detailed Review with Citations</h3>
-              {assessment.questions.map((q, i) => {
+              {shuffledQuestions.map((q, i) => {
                 const isCorrect = answers[i] === q.correctIndex;
                 return (
                   <div key={q.id} className="p-4 rounded-xl border-2" style={{ background: isCorrect ? "rgba(13,59,34,0.04)" : "rgba(224,71,158,0.04)", borderColor: isCorrect ? "rgba(13,59,34,0.2)" : "rgba(224,71,158,0.2)" }}>
@@ -214,8 +252,8 @@ export function Assessment() {
           </div>
         </div>
         <div className="flex gap-1.5">
-          {assessment.questions.map((_, i) => (
-            <div key={i} className={`h-1.5 flex-1 rounded-full transition-all`} style={{ background: i < currentQuestion ? (answers[i] === assessment.questions[i].correctIndex ? "#0D3B22" : "#E0479E") : i === currentQuestion ? "var(--primary)" : "var(--muted)" }} />
+          {shuffledQuestions.map((_, i) => (
+            <div key={i} className={`h-1.5 flex-1 rounded-full transition-all`} style={{ background: i < currentQuestion ? (answers[i] === shuffledQuestions[i].correctIndex ? "#0D3B22" : "#E0479E") : i === currentQuestion ? "var(--primary)" : "var(--muted)" }} />
           ))}
         </div>
       </motion.div>

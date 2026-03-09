@@ -1,9 +1,57 @@
-import { useState, useMemo } from "react";
-import { Check, Pencil, X, ExternalLink, Film, BookOpen, Clapperboard } from "lucide-react";
+import { useState, useMemo, useRef } from "react";
+import { Check, Pencil, X, ExternalLink, Film, BookOpen, Clapperboard, Upload, ChevronDown, ChevronUp, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useAuth } from "./AuthContext";
 import { useVideoRegistry, VIDEO_REGISTRY_META, type VideoStatus, type VideoType } from "./VideoRegistry";
 import { updateVideoEntry } from "./api";
 import { VideoEmbed } from "./VideoEmbed";
+import { projectId, publicAnonKey } from "/utils/supabase/info";
+
+async function bulkUpdateVideos(token: string, entries: Record<string, { url?: string; status?: string }>) {
+  const BASE = `https://${projectId}.supabase.co/functions/v1/make-server-39a35780`;
+  const res = await fetch(`${BASE}/admin/videos/bulk`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "apikey": publicAnonKey,
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ entries }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Bulk update failed: ${res.status}`);
+  return data;
+}
+
+function parseBulkCsv(text: string): { entries: Record<string, { url?: string; status?: string }>; errors: string[] } {
+  const lines = text.trim().split(/\r?\n/);
+  const entries: Record<string, { url?: string; status?: string }> = {};
+  const errors: string[] = [];
+  const VALID_STATUSES = new Set(["not_started", "in_review", "ready", "active"]);
+
+  // Accept header row if present
+  const startIdx = lines[0]?.toLowerCase().includes("videoid") ? 1 : 0;
+
+  for (let i = startIdx; i < lines.length; i++) {
+    const cols = lines[i].split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
+    const [videoId, url, status] = cols;
+    if (!videoId) continue;
+    if (!(videoId in VIDEO_REGISTRY_META)) {
+      errors.push(`Row ${i + 1}: Unknown videoId "${videoId}" — skipped`);
+      continue;
+    }
+    const entry: { url?: string; status?: string } = {};
+    if (url) entry.url = url;
+    if (status) {
+      if (!VALID_STATUSES.has(status)) {
+        errors.push(`Row ${i + 1}: Invalid status "${status}" for ${videoId} — use not_started, in_review, ready, or active`);
+        continue;
+      }
+      entry.status = status;
+    }
+    if (Object.keys(entry).length) entries[videoId] = entry;
+  }
+  return { entries, errors };
+}
 
 const STATUS_CONFIG: Record<VideoStatus, { label: string; className: string }> = {
   not_started: { label: "Not Started", className: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400" },
@@ -37,6 +85,14 @@ export function AdminVideos() {
   const [saving, setSaving] = useState(false);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Bulk CSV import
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkCsv, setBulkCsv] = useState("");
+  const [bulkErrors, setBulkErrors] = useState<string[]>([]);
+  const [bulkImporting, setBulkImporting] = useState(false);
+  const [bulkResult, setBulkResult] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const entries = useMemo(() => {
     return Object.entries(VIDEO_REGISTRY_META)
@@ -80,6 +136,35 @@ export function AdminVideos() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleBulkImport() {
+    if (!accessToken || !bulkCsv.trim()) return;
+    setBulkErrors([]);
+    setBulkResult(null);
+    const { entries, errors } = parseBulkCsv(bulkCsv);
+    if (errors.length) { setBulkErrors(errors); return; }
+    if (!Object.keys(entries).length) { setBulkErrors(["No valid rows found. Check CSV format."]); return; }
+    setBulkImporting(true);
+    try {
+      const res = await bulkUpdateVideos(accessToken, entries);
+      await refresh();
+      setBulkResult(`${res.updated ?? Object.keys(entries).length} videos updated successfully.`);
+      setBulkCsv("");
+    } catch (e: any) {
+      setBulkErrors([e.message || "Import failed"]);
+    } finally {
+      setBulkImporting(false);
+    }
+  }
+
+  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setBulkCsv(ev.target?.result as string || "");
+    reader.readAsText(file);
+    e.target.value = "";
   }
 
   const modules = Array.from(new Set(Object.values(VIDEO_REGISTRY_META).map(m => m.module).filter(Boolean))) as number[];
@@ -305,6 +390,72 @@ export function AdminVideos() {
         {entries.length === 0 && (
           <div className="text-center py-12 text-muted-foreground text-sm">
             No videos match the current filters.
+          </div>
+        )}
+      </div>
+
+      {/* Bulk CSV Import */}
+      <div className="rounded-lg border overflow-hidden">
+        <button
+          onClick={() => { setBulkOpen((v) => !v); setBulkErrors([]); setBulkResult(null); }}
+          className="w-full flex items-center justify-between px-5 py-3 hover:bg-muted/40 transition-colors text-sm font-medium"
+        >
+          <div className="flex items-center gap-2">
+            <Upload className="w-4 h-4" />
+            Bulk CSV Import
+          </div>
+          {bulkOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </button>
+        {bulkOpen && (
+          <div className="px-5 pb-5 border-t space-y-3">
+            <p className="text-xs text-muted-foreground mt-3">
+              Upload or paste a CSV with columns: <code className="bg-muted px-1 rounded">videoId, url, status</code>.
+              Header row optional. Status must be one of: <code className="bg-muted px-1 rounded">not_started</code>,{" "}
+              <code className="bg-muted px-1 rounded">in_review</code>,{" "}
+              <code className="bg-muted px-1 rounded">ready</code>,{" "}
+              <code className="bg-muted px-1 rounded">active</code>.
+            </p>
+            <div className="flex gap-2">
+              <input ref={fileInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleFileUpload} />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="text-xs px-3 py-1.5 border rounded-md hover:bg-muted transition-colors flex items-center gap-1.5"
+              >
+                <Upload className="w-3 h-3" /> Choose file
+              </button>
+              <span className="text-xs text-muted-foreground self-center">or paste CSV below</span>
+            </div>
+            <textarea
+              value={bulkCsv}
+              onChange={(e) => setBulkCsv(e.target.value)}
+              placeholder={"videoId,url,status\nmod1_lecture_root,https://vimeo.com/...,active"}
+              rows={6}
+              className="w-full font-mono text-xs border rounded-md px-3 py-2 bg-background resize-y"
+              spellCheck={false}
+            />
+            {bulkErrors.length > 0 && (
+              <div className="space-y-1">
+                {bulkErrors.map((e, i) => (
+                  <div key={i} className="flex items-start gap-1.5 text-xs text-red-600">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                    {e}
+                  </div>
+                ))}
+              </div>
+            )}
+            {bulkResult && (
+              <div className="flex items-center gap-1.5 text-xs text-green-700">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                {bulkResult}
+              </div>
+            )}
+            <button
+              onClick={handleBulkImport}
+              disabled={bulkImporting || !bulkCsv.trim()}
+              className="px-4 py-2 bg-primary text-primary-foreground text-sm rounded-md hover:opacity-90 disabled:opacity-50"
+            >
+              {bulkImporting ? "Importing…" : "Import"}
+            </button>
           </div>
         )}
       </div>
