@@ -1,13 +1,13 @@
-# CLAUDE.md — CjaTrainingPlatform
+# CLAUDE.md â€” CjaTrainingPlatform
 
 > Agent briefing document. Read this before touching any code.
 > Governance hub: `SAHearn1/rwfw-agent-governance`
 
 ## Repo Identity
 
-- **Purpose:** Criminal Justice AI Training Platform — CJIS-compliant learning environment
+- **Purpose:** Criminal Justice AI Training Platform â€” CJIS-compliant learning environment
 - **Tier:** 1 (production-critical)
-- **Criticality:** HIGH — handles sensitive criminal justice data
+- **Criticality:** HIGH â€” handles sensitive criminal justice data
 
 ## Stack
 
@@ -21,10 +21,26 @@
 
 ## Before You Write Any Code
 
-1. Read `repo.intelligence.yml` — authoritative stack profile
-2. Read `docs/ARCHITECTURE_MAP.md` — component/service map
-3. Read `docs/RUNTIME_MAP.md` — env vars, ports, scripts
-4. Check `docs/INCIDENTS.md` — known active issues
+1. Read `repo.intelligence.yml` â€” authoritative stack profile
+2. Read `docs/ARCHITECTURE_MAP.md` â€” component/service map
+3. Read `docs/RUNTIME_MAP.md` â€” env vars, ports, scripts
+4. Check `docs/INCIDENTS.md` â€” known active issues
+
+## Session Initialization Confirmation
+
+**This block is mandatory. You must confirm each item before proceeding with any code changes.**
+
+At the start of every session, verify and explicitly state:
+
+- [ ] **Repo confirmed:** You are operating in `SAHearn1/CjaTrainingPlatform` (Tier 1 â€” production-critical)
+- [ ] **Branch confirmed:** State the current branch. If not `main`, state the feature branch name and its purpose.
+- [ ] **Initialization docs read:** `repo.intelligence.yml`, `ARCHITECTURE_MAP.md`, `RUNTIME_MAP.md` reviewed
+- [ ] **Active incidents checked:** `docs/INCIDENTS.md` reviewed â€” list any open incidents relevant to the current task
+- [ ] **CJIS scope assessed:** Confirm whether the planned change touches auth, data access, RLS, encryption, or audit logging. If yes, flag it before writing code.
+- [ ] **No destructive operations pending:** Confirm no `DROP`, `DELETE`, `TRUNCATE`, `reset --hard`, or `push --force` operations are planned without explicit human approval in this session.
+
+> **If any item cannot be confirmed, stop and ask the human before proceeding.**
+> Session initialization is not optional and cannot be deferred.
 
 ## Critical Rules for This Repo
 
@@ -32,13 +48,13 @@
 - **RLS is the security boundary.** Every Supabase table has row-level security. Never bypass it. Never set `.from().select()` without understanding which policy applies.
 - **Sentry is active.** All unhandled errors are captured. Do not swallow errors silently.
 - **Auth state must be verified before any data access.** Check `supabase.auth.getSession()` before reads/writes.
-- **No `git add .`** — stage specific files only.
+- **No `git add .`** â€” stage specific files only.
 
 ## Dev Workflow
 
 ```bash
 npm install
-npm run dev          # Vite dev server — http://localhost:5173
+npm run dev          # Vite dev server â€” http://localhost:5173
 npm run lint
 npm run type-check
 npm run build
