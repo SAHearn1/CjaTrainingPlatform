@@ -78,6 +78,13 @@ function supabaseAdmin() {
   return createClient(
     Deno.env.get("SUPABASE_URL"),
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false,
+      },
+    },
   );
 }
 
@@ -86,7 +93,11 @@ async function getUserId(c: any): Promise<string | null> {
   if (!token) return null;
   const supabase = supabaseAdmin();
   const { data, error } = await supabase.auth.getUser(token);
-  if (error || !data?.user?.id) return null;
+  if (error) {
+    console.log("getUserId: getUser failed:", error.message, "status:", error.status);
+    return null;
+  }
+  if (!data?.user?.id) return null;
   return data.user.id;
 }
 
@@ -132,6 +143,7 @@ app.post("/make-server-39a35780/signup", async (c) => {
     const { data, error } = await supabase.auth.admin.createUser({
       email,
       password,
+      email_confirm: true,
       user_metadata: { name },
     });
     if (error) {

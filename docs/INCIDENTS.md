@@ -8,6 +8,26 @@ _None_
 
 ## Resolved Incidents
 
+### 2026-03-09 — JWT 401 on all authenticated endpoints + CSP blocking Vercel Live
+
+**What happened:** All authenticated API calls (`/profile`, `/progress`, `/vignettes`) returned 401 immediately after sign-in. The edge function's `getUserId` was silently returning null on every call. Additionally, the browser console showed a CSP violation blocking `https://vercel.live/_next-live/feedback/feedback.js`.
+
+**Root causes:**
+1. `supabaseAdmin()` was missing server-side Supabase client options (`persistSession: false`, `autoRefreshToken: false`, `detectSessionInUrl: false`). In Deno, omitting these causes the client's auth subsystem to initialize incorrectly, which makes `auth.getUser(jwt)` fail silently.
+2. `getUserId` swallowed the `getUser` error without logging it, making the failure invisible in production logs.
+3. `admin.createUser` was missing `email_confirm: true`, leaving new users in an unconfirmed state.
+4. `vercel.json` CSP had `script-src 'self'` which blocked `https://vercel.live`.
+
+**Resolution:**
+- Added `{ auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false } }` to `supabaseAdmin()` in the edge function.
+- Added error logging to `getUserId` (`console.log` of `error.message` + `error.status`).
+- Added `email_confirm: true` to `admin.createUser`.
+- Added `https://vercel.live` to `script-src` in `vercel.json`.
+
+**Pattern:** See `REPAIR_PATTERNS.md` → "Supabase Admin Client Server-Side Configuration".
+
+---
+
 ### 2026-03-08 — Git rebase conflict on .gitignore
 
 **What happened:** `git push` to `origin/main` was rejected because the remote had a commit (CLAUDE.md with security credential patterns in `.gitignore`) that wasn't in the local branch. After `git pull --rebase`, a merge conflict arose in `.gitignore` — the remote had added security credential exclusions (`*.pem`, `*.key`, `.env.production`, etc.) while local had added AI tool directories (`.claude/`, `.windsurf/`, etc.).
