@@ -24,7 +24,7 @@ Or copy `supabase/migrations/20260306000001_initial_schema.sql` into the Supabas
 
 ### 2. Update the edge function
 
-The edge function (`supabase/functions/server/index.tsx`) currently uses a `kv` object. Replace KV operations with Supabase client queries:
+The edge function (`supabase/functions/make-server-39a35780/index.ts`) currently uses a `kv` object. Replace KV operations with Supabase client queries:
 
 **Before (KV):**
 ```ts

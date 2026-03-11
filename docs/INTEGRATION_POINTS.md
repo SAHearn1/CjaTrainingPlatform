@@ -22,7 +22,7 @@
 - **Auth**: email/password only; email auto-confirm enabled (no email verification gate)
 - **RLS**: disabled — all data protection enforced in the Edge Function via JWT validation + RBAC
 - **Database**: single KV table `kv_store_39a35780`; no relational schema
-- **Edge Function**: deployed as `server` (`supabase/functions/server/index.tsx`)
+- **Edge Function**: deployed as `make-server-39a35780` (`supabase/functions/make-server-39a35780/index.ts`)
 
 ## Stripe Flow
 

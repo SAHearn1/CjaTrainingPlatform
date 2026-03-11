@@ -18,7 +18,7 @@ RootWork Trauma-Informed Investigation Training Platform — a CJIS-compliant LM
   └─ PDF export: jspdf (client-side, print-to-PDF)
               ↓
 [Supabase Edge Functions (Deno + Hono.js)]
-  └─ supabase/functions/server/index.tsx
+  └─ supabase/functions/make-server-39a35780/index.ts
      ├─ Auth: Supabase Admin SDK (JWT verification)
      ├─ Data: KV store pattern (single table kv_store_39a35780)
      ├─ Encryption: AES-256-GCM (encryption.tsx)

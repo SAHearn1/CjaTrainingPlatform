@@ -8,6 +8,21 @@ _None_
 
 ## Resolved Incidents
 
+### 2026-03-11 — Stale supabase/functions/server/ directory (latent mis-deploy risk)
+
+**What happened:** A stale copy of the edge function at `supabase/functions/server/` was discovered alongside the current function at `supabase/functions/make-server-39a35780/`. The stale copy contained the exact `supabaseAdmin()` bug from the 2026-03-09 incident (missing `persistSession: false`, `autoRefreshToken: false`, `detectSessionInUrl: false`). Six documentation files (README, ARCHITECTURE_MAP, RUNTIME_MAP, INTEGRATION_POINTS, AGENT_DEBUG_RUNBOOK, postgres-migration) still referenced `server` as the deploy target — meaning `supabase functions deploy server` would have deployed the broken function.
+
+**Root cause:** When the fixed `make-server-39a35780/` function was created during the 2026-03-09 incident response, the stale `server/` directory was not removed. Documentation was not updated to reflect the rename.
+
+**Resolution:**
+- Deleted `supabase/functions/server/` (3 files) via `git rm -r`
+- Updated all 6 documentation files to reference `make-server-39a35780`
+- Fixed a secondary doc error in RUNTIME_MAP.md that falsely stated no lint/test scripts exist
+
+**Issue:** #88
+
+## Resolved Incidents
+
 ### 2026-03-09 — JWT 401 on all authenticated endpoints + CSP blocking Vercel Live
 
 **What happened:** All authenticated API calls (`/profile`, `/progress`, `/vignettes`) returned 401 immediately after sign-in. The edge function's `getUserId` was silently returning null on every call. Additionally, the browser console showed a CSP violation blocking `https://vercel.live/_next-live/feedback/feedback.js`.

@@ -95,7 +95,7 @@ A `vercel.json` is included for zero-config Vercel deployment. The build command
 For the Supabase Edge Function backend, deploy via the Supabase CLI:
 
 ```bash
-supabase functions deploy server
+supabase functions deploy make-server-39a35780
 ```
 
 Set the required secrets in the Supabase dashboard under **Project Settings → Edge Functions → Secrets**.

@@ -5,7 +5,7 @@
 | Entrypoint | Type | Description |
 |-----------|------|-------------|
 | `src/main.tsx` | Vite app | React root — calls initMonitoring(), renders App |
-| `supabase/functions/server/index.tsx` | Deno Edge Function | Hono.js REST API (all backend endpoints) |
+| `supabase/functions/make-server-39a35780/index.ts` | Deno Edge Function | Hono.js REST API (all backend endpoints) |
 
 ## Environment Variables
 
@@ -39,13 +39,12 @@ npm run build      # Production build
 npm run preview    # Preview production build
 ```
 
-Note: No lint, typecheck, or test scripts are configured in package.json.
-The project has no ESLint, Prettier, or test runner setup.
+Note: The following scripts are configured in package.json: `lint`, `lint:strict`, `typecheck`, `test`, `test:watch`, `test:coverage`.
 
 ## Deployment
 
 - **Frontend**: Vercel (auto-deploy from main branch)
-- **Backend**: Supabase Edge Functions (deploy via `supabase functions deploy server`)
+- **Backend**: Supabase Edge Functions (deploy via `supabase functions deploy make-server-39a35780`)
 - **Database**: Supabase PostgreSQL (managed, no migrations needed for KV pattern)
 
 ## Key API Routes (server)

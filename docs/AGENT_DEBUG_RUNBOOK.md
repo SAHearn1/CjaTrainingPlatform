@@ -27,7 +27,7 @@
 
 ### Edge Function Issues
 
-- Deploy with: `supabase functions deploy server`
+- Deploy with: `supabase functions deploy make-server-39a35780`
 - Edge function logs: Supabase dashboard → Edge Functions → Logs
 - The function uses Hono.js router. All routes prefixed `/make-server-39a35780/`.
 - CORS is enabled for all origins in the Hono CORS middleware.
@@ -37,7 +37,7 @@
 
 - All Stripe calls are server-side (Edge Function). No Stripe SDK on the client.
 - Webhook signature verification requires `STRIPE_SECRET_KEY` and the raw request body.
-- For local webhook testing, use Stripe CLI: `stripe listen --forward-to localhost:54321/functions/v1/server/make-server-39a35780/licensing/webhook`
+- For local webhook testing, use Stripe CLI: `stripe listen --forward-to localhost:54321/functions/v1/make-server-39a35780/licensing/webhook`
 
 ### Gemini / Rooty Issues
 
