@@ -38,6 +38,7 @@ interface AuthState {
   loading: boolean;
   progress: ModuleProgress[];
   watchedVignettes: string[];
+  licenseActive: boolean;
 
   signUp: (email: string, password: string, name: string) => Promise<{ needsConfirmation?: boolean }>;
   signIn: (email: string, password: string) => Promise<void>;
@@ -61,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState<ModuleProgress[]>([]);
   const [watchedVignettes, setWatchedVignettes] = useState<string[]>([]);
+  const [licenseActive, setLicenseActive] = useState(false);
 
   // Guard: prevent onAuthStateChange from calling loadUserData with a stale
   // token before initSession has had a chance to refresh it.
@@ -96,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setAccessToken(null);
           setProgress([]);
           setWatchedVignettes([]);
+          setLicenseActive(false);
           if (isMounted) setLoading(false);
         }
       }
@@ -156,11 +159,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     loadingUserDataRef.current = true;
     try {
-      // Fetch profile, progress, vignettes in parallel
-      const [profileRes, progressRes, vignettesRes] = await Promise.allSettled([
+      // Fetch profile, progress, vignettes, and license status in parallel
+      const [profileRes, progressRes, vignettesRes, licenseRes] = await Promise.allSettled([
         api.getProfile(token),
         api.getProgress(token),
         api.getVignettes(token),
+        api.getLicenseStatus(token),
       ]);
 
       if (profileRes.status === "fulfilled" && profileRes.value?.profile) {
@@ -171,6 +175,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       if (vignettesRes.status === "fulfilled") {
         setWatchedVignettes(vignettesRes.value?.watched || []);
+      }
+      if (licenseRes.status === "fulfilled") {
+        const lic = licenseRes.value?.license;
+        const active = lic?.status === "active" &&
+          (!lic?.expiresAt || new Date(lic.expiresAt) > new Date());
+        setLicenseActive(active);
       }
 
       // If all failed, try refreshing the session once
@@ -281,6 +291,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAccessToken(null);
     setProgress([]);
     setWatchedVignettes([]);
+    setLicenseActive(false);
   }, []);
 
   const resetPassword = useCallback(async (email: string) => {
@@ -353,6 +364,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         progress,
         watchedVignettes,
+        licenseActive,
         signUp,
         signIn,
         signOut,

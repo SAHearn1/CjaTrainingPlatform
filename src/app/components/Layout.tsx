@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
+import { NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router";
 import {
   TreePine,
   LayoutDashboard,
@@ -68,8 +68,7 @@ export function Layout() {
   };
 
   if (!loading && !user) {
-    navigate("/");
-    return null;
+    return <Navigate to="/" replace />;
   }
 
   if (loading) {

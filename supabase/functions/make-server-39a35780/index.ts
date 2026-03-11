@@ -8,6 +8,7 @@ import {
   encryptedSet,
   encryptedGet,
   encryptedGetByPrefix,
+  encryptedGetByPrefixWithKeys,
 } from "./encryption.tsx";
 
 const app = new Hono();
@@ -78,6 +79,9 @@ function supabaseAdmin() {
   return createClient(
     Deno.env.get("SUPABASE_URL"),
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),
+    // Required for Deno edge function environments — prevents auth subsystem from
+    // attempting localStorage/cookie access which fails silently and breaks getUser().
+    { auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false } },
   );
 }
 
@@ -86,7 +90,11 @@ async function getUserId(c: any): Promise<string | null> {
   if (!token) return null;
   const supabase = supabaseAdmin();
   const { data, error } = await supabase.auth.getUser(token);
-  if (error || !data?.user?.id) return null;
+  if (error) {
+    console.error("getUserId auth.getUser error:", error.message, error.status);
+    return null;
+  }
+  if (!data?.user?.id) return null;
   return data.user.id;
 }
 
@@ -104,25 +112,27 @@ app.get("/make-server-39a35780/health", (c) => {
   return c.json({ status: "ok" });
 });
 
-// CJIS 5.10.1: In-memory rate limiter — 10 auth attempts per 15 min per IP.
-const _rateLimitMap = new Map();
-function checkRateLimit(ip, maxRequests = 10, windowMs = 15 * 60 * 1000) {
-  const now = Date.now();
-  const entry = _rateLimitMap.get(ip);
-  if (!entry || now > entry.resetAt) {
-    _rateLimitMap.set(ip, { count: 1, resetAt: now + windowMs });
+// CJIS 5.10.1: KV-backed rate limiter — persists across Deno isolate restarts.
+// In-memory Maps reset on every cold start so they cannot enforce limits reliably.
+async function checkRateLimit(ip: string, maxRequests = 10, windowMs = 15 * 60 * 1000): Promise<boolean> {
+  const windowStart = Math.floor(Date.now() / windowMs);
+  const key = `ratelimit:${ip}:${windowStart}`;
+  try {
+    const current = await kv.get(key) as { count: number } | null;
+    const count = (current?.count ?? 0) + 1;
+    await kv.set(key, { count, expiresAt: Date.now() + windowMs * 2 });
+    return count <= maxRequests;
+  } catch {
+    // On KV error, allow the request (fail open to preserve availability)
     return true;
   }
-  if (entry.count >= maxRequests) return false;
-  entry.count++;
-  return true;
 }
 
 // ---------- Auth: Sign Up ----------
 
 app.post("/make-server-39a35780/signup", async (c) => {
   const ip = c.req.header("x-forwarded-for") || c.req.header("cf-connecting-ip") || "unknown";
-  if (!checkRateLimit(ip)) return c.json({ error: "Too many requests. Please try again later." }, 429);
+  if (!(await checkRateLimit(ip))) return c.json({ error: "Too many requests. Please try again later." }, 429);
   try {
     const { email, password, name } = await c.req.json();
     if (!email || !password || !name) {
@@ -137,15 +147,15 @@ app.post("/make-server-39a35780/signup", async (c) => {
       email_confirm: true,
     });
     if (error) {
-      console.log("Signup error:", error.message);
+      console.error("Signup error:", error.message);
       return c.json({ error: `Signup failed: ${error.message}` }, 400);
     }
     // Audit: successful signup
     await auditLog("auth:signup", data.user.id, "success", `New user created: ${email}`, c);
     return c.json({ user: { id: data.user.id, email: data.user.email } });
   } catch (e) {
-    console.log("Signup exception:", e);
-    return c.json({ error: `Signup exception: ${e}` }, 500);
+    console.error("Signup exception:", e);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
@@ -159,8 +169,8 @@ app.get("/make-server-39a35780/profile", async (c) => {
     await auditLog("data:profile_read", userId, "success", "Profile fetched", c);
     return c.json({ profile: profile || null });
   } catch (e) {
-    console.log("Profile get error:", e);
-    return c.json({ error: `Profile fetch error: ${e}` }, 500);
+    console.error("Profile get error:", e);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
@@ -186,10 +196,22 @@ app.put("/make-server-39a35780/profile", async (c) => {
     await auditLog("data:profile_update", userId, "success", "Profile updated", c);
     return c.json({ profile });
   } catch (e) {
-    console.log("Profile update error:", e);
-    return c.json({ error: `Profile update error: ${e}` }, 500);
+    console.error("Profile update error:", e);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
+
+// ---------- License Gate ----------
+// CJIS / Business rule: only users with an active license may write training data.
+// Admin/superadmin are platform operators and bypass this requirement.
+async function requireLicense(userId: string, userRole: string): Promise<boolean> {
+  if (ADMIN_ROLES.includes(userRole)) return true;
+  const license = await kv.get(`user:${userId}:license`) as any;
+  if (!license) return false;
+  if (license.status !== "active") return false;
+  if (license.expiresAt && new Date(license.expiresAt) < new Date()) return false;
+  return true;
+}
 
 // ---------- Progress ----------
 
@@ -200,19 +222,24 @@ app.get("/make-server-39a35780/progress", async (c) => {
     const results = await encryptedGetByPrefix(kv.getByPrefix, `user:${userId}:progress:`);
     return c.json({ progress: results || [] });
   } catch (e) {
-    console.log("Progress fetch error:", e);
-    return c.json({ error: `Progress fetch error: ${e}` }, 500);
+    console.error("Progress fetch error:", e);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
 app.put("/make-server-39a35780/progress/:moduleId", async (c) => {
   const userId = await getUserId(c);
   if (!userId) return c.json({ error: "Unauthorized: progress update" }, 401);
+  const userRole = await getUserRole(userId);
+  if (!(await requireLicense(userId, userRole))) {
+    return c.json({ error: "License required to save progress" }, 402);
+  }
   const moduleId = c.req.param("moduleId");
   try {
     const body = await c.req.json();
     const key = `user:${userId}:progress:${moduleId}`;
-    const existing = await kv.get(key);
+    // CJIS 5.10.1.2: progress data is encrypted at rest — use encryptedGet/encryptedSet
+    const existing = await encryptedGet<any>(kv.get, key);
     const progress = {
       moduleId: Number(moduleId),
       preAssessmentScore: null,
@@ -226,11 +253,11 @@ app.put("/make-server-39a35780/progress/:moduleId", async (c) => {
       ...body,
       updatedAt: new Date().toISOString(),
     };
-    await kv.set(key, progress);
+    await encryptedSet(kv.set, key, progress);
     return c.json({ progress });
   } catch (e) {
-    console.log("Progress update error:", e);
-    return c.json({ error: `Progress update error: ${e}` }, 500);
+    console.error("Progress update error:", e);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
@@ -243,8 +270,8 @@ app.get("/make-server-39a35780/vignettes", async (c) => {
     const data = await kv.get(`user:${userId}:vignettes`);
     return c.json({ watched: data?.watched || [] });
   } catch (e) {
-    console.log("Vignettes fetch error:", e);
-    return c.json({ error: `Vignettes fetch error: ${e}` }, 500);
+    console.error("Vignettes fetch error:", e);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
@@ -256,8 +283,8 @@ app.put("/make-server-39a35780/vignettes", async (c) => {
     await kv.set(`user:${userId}:vignettes`, { watched: body.watched || [] });
     return c.json({ success: true });
   } catch (e) {
-    console.log("Vignettes update error:", e);
-    return c.json({ error: `Vignettes update error: ${e}` }, 500);
+    console.error("Vignettes update error:", e);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
@@ -266,6 +293,10 @@ app.put("/make-server-39a35780/vignettes", async (c) => {
 app.post("/make-server-39a35780/simulations", async (c) => {
   const userId = await getUserId(c);
   if (!userId) return c.json({ error: "Unauthorized: simulation save" }, 401);
+  const simUserRole = await getUserRole(userId);
+  if (!(await requireLicense(userId, simUserRole))) {
+    return c.json({ error: "License required to save simulation results" }, 402);
+  }
   try {
     const body = await c.req.json();
     const ts = Date.now();
@@ -278,8 +309,8 @@ app.post("/make-server-39a35780/simulations", async (c) => {
     await encryptedSet(kv.set, key, record);
     return c.json({ simulation: record });
   } catch (e) {
-    console.log("Simulation save error:", e);
-    return c.json({ error: `Simulation save error: ${e}` }, 500);
+    console.error("Simulation save error:", e);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
@@ -290,8 +321,8 @@ app.get("/make-server-39a35780/simulations", async (c) => {
     const results = await encryptedGetByPrefix(kv.getByPrefix, `user:${userId}:simulation:`);
     return c.json({ simulations: results || [] });
   } catch (e) {
-    console.log("Simulations fetch error:", e);
-    return c.json({ error: `Simulations fetch error: ${e}` }, 500);
+    console.error("Simulations fetch error:", e);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
@@ -301,6 +332,10 @@ app.get("/make-server-39a35780/simulations", async (c) => {
 app.post("/make-server-39a35780/certificates/generate", async (c) => {
   const userId = await getUserId(c);
   if (!userId) return c.json({ error: "Unauthorized" }, 401);
+  const certUserRole = await getUserRole(userId);
+  if (!(await requireLicense(userId, certUserRole))) {
+    return c.json({ error: "License required to generate certificates" }, 402);
+  }
   try {
     // Return existing certificate if already issued (idempotent)
     const existing = await kv.get(`user:${userId}:certificate`);
@@ -336,8 +371,8 @@ app.post("/make-server-39a35780/certificates/generate", async (c) => {
     return c.json({ certificate });
   } catch (e) {
     await auditLog("certificate_generate", userId, "failure", String(e), c);
-    console.log("Certificate generate error:", e);
-    return c.json({ error: `Certificate generate error: ${e}` }, 500);
+    console.error("Certificate generate error:", e);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
@@ -349,8 +384,8 @@ app.get("/make-server-39a35780/certificates", async (c) => {
     const certificate = await kv.get(`user:${userId}:certificate`);
     return c.json({ certificates: certificate ? [certificate] : [] });
   } catch (e) {
-    console.log("Certificates fetch error:", e);
-    return c.json({ error: `Certificates fetch error: ${e}` }, 500);
+    console.error("Certificates fetch error:", e);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
@@ -362,8 +397,8 @@ app.get("/make-server-39a35780/certificates/:certId", async (c) => {
     if (!certRef) return c.json({ error: "Certificate not found" }, 404);
     return c.json({ certificate: certRef });
   } catch (e) {
-    console.log("Certificate lookup error:", e);
-    return c.json({ error: `Certificate lookup error: ${e}` }, 500);
+    console.error("Certificate lookup error:", e);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
@@ -427,8 +462,8 @@ app.get("/make-server-39a35780/licensing/status", async (c) => {
     const license = await kv.get(`user:${userId}:license`);
     return c.json({ license: license || null });
   } catch (e) {
-    console.log("License status error:", e);
-    return c.json({ error: `License status error: ${e}` }, 500);
+    console.error("License status error:", e);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
@@ -472,8 +507,8 @@ app.post("/make-server-39a35780/licensing/checkout", async (c) => {
 
     return c.json({ sessionId: session.id, url: session.url });
   } catch (e) {
-    console.log("Checkout session error:", e);
-    return c.json({ error: `Checkout session creation failed: ${e}` }, 500);
+    console.error("Checkout session error:", e);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
@@ -517,8 +552,8 @@ app.post("/make-server-39a35780/licensing/confirm", async (c) => {
 
     return c.json({ license });
   } catch (e) {
-    console.log("License confirm error:", e);
-    return c.json({ error: `License confirmation failed: ${e}` }, 500);
+    console.error("License confirm error:", e);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
@@ -592,7 +627,7 @@ app.get("/make-server-39a35780/videos", async (c) => {
     const registry = await kv.get(VIDEO_REGISTRY_KEY) ?? {};
     return c.json(registry);
   } catch (e) {
-    console.log("Video registry fetch error:", e);
+    console.error("Video registry fetch error:", e);
     return c.json({});
   }
 });
@@ -615,7 +650,7 @@ app.post("/make-server-39a35780/admin/videos/bulk", async (c) => {
     await kv.set(VIDEO_REGISTRY_KEY, registry);
     return c.json({ ok: true, updated: Object.keys(entries).length });
   } catch (e) {
-    return c.json({ error: `Bulk update failed: ${e}` }, 500);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
@@ -630,7 +665,7 @@ app.get("/make-server-39a35780/admin/videos", async (c) => {
     const registry = await kv.get(VIDEO_REGISTRY_KEY) ?? {};
     return c.json(registry);
   } catch (e) {
-    return c.json({ error: `Failed to fetch video registry: ${e}` }, 500);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
@@ -658,7 +693,7 @@ app.put("/make-server-39a35780/admin/videos/:videoId", async (c) => {
     await auditLog("admin:video_registry_update", userId, "success", `Updated video ${videoId}: status=${registry[videoId].status}`, c);
     return c.json({ ok: true, entry: registry[videoId] });
   } catch (e) {
-    return c.json({ error: `Failed to update video registry: ${e}` }, 500);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
@@ -677,8 +712,8 @@ app.get("/make-server-39a35780/admin/stats", async (c) => {
 
     // Audit: admin dashboard access
     await auditLog("admin:dashboard_access", userId, "success", "Admin stats requested", c);
-    // Get all user records with keys to extract userId from key paths
-    const allEntries = await kv.getByPrefixWithKeys("user:");
+    // Get all user records with keys; decrypt values (profiles and progress are encrypted)
+    const allEntries = await encryptedGetByPrefixWithKeys(kv.getByPrefixWithKeys, "user:");
 
     // Separate profile records (user:{userId}:profile) from progress records (user:{userId}:progress:{moduleId})
     const profileEntries = allEntries.filter(({ key }) => key.endsWith(":profile"));
@@ -764,8 +799,8 @@ app.get("/make-server-39a35780/admin/stats", async (c) => {
       },
     });
   } catch (e) {
-    console.log("Admin stats error:", e);
-    return c.json({ error: `Admin stats error: ${e}` }, 500);
+    console.error("Admin stats error:", e);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
@@ -784,17 +819,29 @@ app.get("/make-server-39a35780/admin/users", async (c) => {
 
     await auditLog("admin:user_view", userId, "success", "Admin user list requested", c);
 
-    // Fetch all user profiles via KV prefix scan
-    const allData = await kv.getByPrefix("user:");
-    const profiles = allData.filter((entry: any) => entry?.userId && entry?.role);
+    // Fetch and decrypt all user-prefixed records; separate profiles from progress by key structure
+    const allData = await encryptedGetByPrefixWithKeys(kv.getByPrefixWithKeys, "user:");
+    const profileEntries = allData.filter(({ key }) => key.endsWith(":profile"));
+    const progressEntries = allData.filter(({ key }) => key.includes(":progress:"));
 
-    // Enrich with progress summary
+    const profiles = profileEntries
+      .map(({ value }) => value as any)
+      .filter((p: any) => p?.userId && p?.role);
+
+    // Build userId → progress[] map using key structure (progress values have no userId field)
+    const progressByUserId: Record<string, any[]> = {};
+    progressEntries.forEach(({ key, value }) => {
+      const uid = key.split(":")[1];
+      if (uid) {
+        if (!progressByUserId[uid]) progressByUserId[uid] = [];
+        progressByUserId[uid].push(value);
+      }
+    });
+
     const users = profiles.map((p: any) => {
-      const progressEntries = allData.filter(
-        (d: any) => d?.moduleId !== undefined && d?.status && d?.userId === p.userId
-      );
-      const completedModules = progressEntries.filter((d: any) => d.status === "completed").length;
-      const inProgressModules = progressEntries.filter((d: any) => d.status === "in_progress").length;
+      const userProgress = progressByUserId[p.userId] || [];
+      const completedModules = userProgress.filter((d: any) => d?.status === "completed").length;
+      const inProgressModules = userProgress.filter((d: any) => d?.status === "in_progress").length;
       return {
         userId: p.userId,
         name: p.name || "Unknown",
@@ -811,8 +858,8 @@ app.get("/make-server-39a35780/admin/users", async (c) => {
 
     return c.json({ users });
   } catch (e) {
-    console.log("Admin users list error:", e);
-    return c.json({ error: `Admin users list error: ${e}` }, 500);
+    console.error("Admin users list error:", e);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
@@ -880,8 +927,8 @@ app.put("/make-server-39a35780/admin/users/:targetUserId/role", async (c) => {
 
     return c.json({ profile: updatedProfile });
   } catch (e) {
-    console.log("Role change error:", e);
-    return c.json({ error: `Role change error: ${e}` }, 500);
+    console.error("Role change error:", e);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
@@ -900,18 +947,34 @@ app.get("/make-server-39a35780/admin/audit", async (c) => {
 
     await auditLog("admin:audit_view", userId, "success", "Audit log viewed", c);
 
-    // Get audit index entries (lightweight, not encrypted)
-    const auditEntries = await kv.getByPrefix("audit_idx:");
-    // Sort by timestamp descending and limit to most recent 500
-    const sorted = (auditEntries || [])
-      .filter((e: any) => e && e.timestamp)
-      .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 500);
+    // Cursor-based pagination: ?limit=50&cursor=<base64-encoded-timestamp>
+    const limitParam = Number(c.req.query("limit") ?? 50);
+    const limit = Math.min(Math.max(1, limitParam), 200);
+    const cursorParam = c.req.query("cursor");
+    const cursorTs = cursorParam
+      ? Number(atob(cursorParam))
+      : Number.MAX_SAFE_INTEGER;
 
-    return c.json({ entries: sorted });
+    // audit_idx entries are lightweight unencrypted records: { userId, eventType, outcome, timestamp }
+    const allEntries = await kv.getByPrefix("audit_idx:");
+    const sorted = (allEntries || [])
+      .filter((e: any) => e?.timestamp)
+      .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    // Apply cursor filter (entries strictly before cursorTs)
+    const afterCursor = sorted.filter(
+      (e: any) => new Date(e.timestamp).getTime() < cursorTs
+    );
+    const page = afterCursor.slice(0, limit);
+    const nextEntry = afterCursor[limit];
+    const nextCursor = nextEntry
+      ? btoa(String(new Date(nextEntry.timestamp).getTime()))
+      : null;
+
+    return c.json({ entries: page, nextCursor, total: sorted.length });
   } catch (e) {
-    console.log("Audit log fetch error:", e);
-    return c.json({ error: `Audit log fetch error: ${e}` }, 500);
+    console.error("Audit log fetch error:", e);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
@@ -980,19 +1043,19 @@ app.post("/make-server-39a35780/rooty/chat", async (c) => {
       ],
     };
 
-    // Try gemini-2.0-flash first; fall back to gemini-2.0-flash-lite
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    // API key passed via header (not URL query param) to prevent key leakage in access logs
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`;
 
     const resp = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
       body: JSON.stringify(body),
     });
 
     if (!resp.ok) {
       const errText = await resp.text();
-      console.log("Gemini API error:", resp.status, errText);
-      return c.json({ error: `Gemini API error (${resp.status}): ${errText}` }, 502);
+      console.error("Gemini API error:", resp.status, errText);
+      return c.json({ error: "Upstream AI service error" }, 502);
     }
 
     const data = await resp.json();
@@ -1002,8 +1065,8 @@ app.post("/make-server-39a35780/rooty/chat", async (c) => {
 
     return c.json({ reply });
   } catch (e) {
-    console.log("Rooty chat error:", e);
-    return c.json({ error: `Rooty chat error: ${e}` }, 500);
+    console.error("Rooty chat error:", e);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 

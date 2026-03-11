@@ -34,9 +34,14 @@ export function initMonitoring() {
   if (posthogKey) {
     posthog.init(posthogKey, {
       api_host: posthogHost,
-      // Respect user privacy — don't record session replays unless opted in
+      // CJIS compliance: disable autocapture to prevent inadvertent PII capture
+      // (click events, form field names/values, DOM snapshots)
+      autocapture: false,
+      // CJIS compliance: do not transmit IP addresses to a third-party service
+      ip: false,
+      // Respect user privacy — don't record session replays
       disable_session_recording: true,
-      // Autocapture page views
+      // Page views are safe (no PII in route paths)
       capture_pageview: true,
       // Don't send data from localhost
       loaded(ph) {

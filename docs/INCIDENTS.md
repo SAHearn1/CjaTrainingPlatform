@@ -8,6 +8,23 @@ _None_
 
 ## Resolved Incidents
 
+### 2026-03-11 — Batch hardening: issues #90–#103 (14 fixes, 6 files)
+
+**Issues closed:** #90 (unencrypted progress), #91 (Gemini key in URL), #92 (in-memory rate limiter), #93 (CI test gate), #94 (audit log entries), #95 (license enforcement), #96 (admin/users zero counts), #97 (admin/stats broken profiles), #98 (render-time navigate), #99 (raw 500 errors), #100 (audit pagination), #101 (PostHog CJIS), #102 (license expiry check), #103 (RLS disabled)
+
+**Summary of changes:**
+- `encryption.tsx`: Added `encryptedGetByPrefixWithKeys` helper for admin endpoints that need key+decrypted-value pairs
+- `index.ts`: Added Deno auth options to `supabaseAdmin()` (same fix as 2026-03-09 incident, was missing from current function); KV-backed rate limiter replacing in-memory Map; `encryptedGet`/`encryptedSet` for progress writes; `requireLicense` helper applied to progress/simulations/certificates; admin/stats and admin/users rewired to decrypt profiles+progress with key-based matching; audit log adds cursor pagination; Gemini key moved from URL to `x-goog-api-key` header; all 22 raw `${e}` 500 responses sanitized to generic messages with `console.error`
+- `Layout.tsx`: Replaced render-time `navigate("/")` with `<Navigate to="/" replace />`
+- `AuthContext.tsx`: Added `licenseActive` state — loads `getLicenseStatus()` on every sign-in, clears on sign-out
+- `monitoring.ts`: Added `autocapture: false` and `ip: false` to PostHog init (CJIS compliance)
+- `.github/workflows/ci.yml`: Added `npm run test -- --run` step to existing CI pipeline
+- `kv_store_39a35780` (Supabase DB): RLS enabled with explicit deny policy for anon/authenticated roles
+
+**Issue:** #90–#103
+
+---
+
 ### 2026-03-11 — Role self-promotion via PUT /profile (CJIS authorization bypass)
 
 **What happened:** Any authenticated user could escalate their own role (including to `superadmin`) by sending `{ "role": "superadmin" }` in the request body to `PUT /profile`. The handler performed an unconstrained `...body` spread into the profile object before writing to KV, making `role`, `userId`, and `joinedAt` user-controllable. The `getUserRole()` RBAC helper reads `profile.role` from KV, so an attacker's next request would pass every privilege check.
