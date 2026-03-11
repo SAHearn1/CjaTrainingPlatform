@@ -8,6 +8,22 @@ _None_
 
 ## Resolved Incidents
 
+### 2026-03-11 — Role self-promotion via PUT /profile (CJIS authorization bypass)
+
+**What happened:** Any authenticated user could escalate their own role (including to `superadmin`) by sending `{ "role": "superadmin" }` in the request body to `PUT /profile`. The handler performed an unconstrained `...body` spread into the profile object before writing to KV, making `role`, `userId`, and `joinedAt` user-controllable. The `getUserRole()` RBAC helper reads `profile.role` from KV, so an attacker's next request would pass every privilege check.
+
+**Root cause:** `PUT /profile` handler destructured the full request body into the profile record with no field allowlist or denylist. The legitimate role-promotion path (`PUT /admin/users/:id/role`, which enforces admin/superadmin JWT) was fully bypassed.
+
+**Resolution:**
+- Destructure `role`, `userId`, and `joinedAt` out of the request body before the spread:
+  `const { role: _role, userId: _uid, joinedAt: _joinedAt, ...safeBody } = body`
+- `safeBody` is spread into the profile — these three fields can only reach the profile via server-controlled assignment (from the existing KV record or the admin role endpoint).
+- 32 existing tests pass; no regression.
+
+**Issue:** #89
+
+---
+
 ### 2026-03-11 — Stale supabase/functions/server/ directory (latent mis-deploy risk)
 
 **What happened:** A stale copy of the edge function at `supabase/functions/server/` was discovered alongside the current function at `supabase/functions/make-server-39a35780/`. The stale copy contained the exact `supabaseAdmin()` bug from the 2026-03-09 incident (missing `persistSession: false`, `autoRefreshToken: false`, `detectSessionInUrl: false`). Six documentation files (README, ARCHITECTURE_MAP, RUNTIME_MAP, INTEGRATION_POINTS, AGENT_DEBUG_RUNBOOK, postgres-migration) still referenced `server` as the deploy target — meaning `supabase functions deploy server` would have deployed the broken function.

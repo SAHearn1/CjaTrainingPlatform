@@ -170,9 +170,12 @@ app.put("/make-server-39a35780/profile", async (c) => {
   try {
     const body = await c.req.json();
     const existing = await encryptedGet<any>(kv.get, `user:${userId}:profile`);
+    // Strip server-controlled fields — users must not self-assign role, userId, or joinedAt.
+    // role is only settable via PUT /admin/users/:id/role (requires admin/superadmin JWT).
+    const { role: _role, userId: _uid, joinedAt: _joinedAt, ...safeBody } = body;
     const profile = {
       ...(existing || {}),
-      ...body,
+      ...safeBody,
       userId,
       updatedAt: new Date().toISOString(),
     };
