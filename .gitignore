@@ -64,5 +64,5 @@ skills-lock.json
 # Supabase temp
 supabase/.temp/
 
-# Stale Figma Make server copy
-supabase/functions/make-server-39a35780/
+# Supabase edge function build artifacts (tracked files are committed)
+# supabase/functions/make-server-39a35780/ is the LIVE edge function — do not ignore
