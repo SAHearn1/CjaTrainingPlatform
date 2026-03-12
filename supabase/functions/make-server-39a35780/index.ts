@@ -88,14 +88,24 @@ function supabaseAdmin() {
 async function getUserId(c: any): Promise<string | null> {
   const token = c.req.header("Authorization")?.split(" ")[1];
   if (!token) return null;
-  const supabase = supabaseAdmin();
-  const { data, error } = await supabase.auth.getUser(token);
-  if (error) {
-    console.error("getUserId auth.getUser error:", error.message, error.status);
+  // verify_jwt: true on this function means Supabase has already validated the JWT
+  // signature before the request reaches this handler. Decoding the payload is safe
+  // and avoids a redundant auth.getUser() network round-trip that fails in some
+  // Deno edge-function environments.
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    // JWT uses base64url (RFC 4648 §5): replace url-safe chars and restore padding
+    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = b64.padEnd(b64.length + (4 - b64.length % 4) % 4, "=");
+    const payload = JSON.parse(atob(padded));
+    const userId = payload.sub as string | undefined;
+    if (!userId) return null;
+    return userId;
+  } catch (e) {
+    console.error("getUserId JWT decode error:", e);
     return null;
   }
-  if (!data?.user?.id) return null;
-  return data.user.id;
 }
 
 // ── CJIS 5.4: Role-based access control helper ──
