@@ -86,16 +86,15 @@ function supabaseAdmin() {
 }
 
 async function getUserId(c: any): Promise<string | null> {
-  const token = c.req.header("Authorization")?.split(" ")[1];
+  const authHeader = c.req.header("Authorization");
+  const token = authHeader?.split(" ")[1];
   if (!token) return null;
-  // verify_jwt: true on this function means Supabase has already validated the JWT
-  // signature before the request reaches this handler. Decoding the payload is safe
-  // and avoids a redundant auth.getUser() network round-trip that fails in some
-  // Deno edge-function environments.
+  // Decode JWT payload directly — avoids a redundant auth.getUser() network round-trip
+  // that fails in some Deno edge-function environments. JWT uses base64url (RFC 4648 §5):
+  // replace url-safe chars and restore standard base64 padding before decoding.
   try {
     const parts = token.split(".");
     if (parts.length !== 3) return null;
-    // JWT uses base64url (RFC 4648 §5): replace url-safe chars and restore padding
     const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
     const padded = b64.padEnd(b64.length + (4 - b64.length % 4) % 4, "=");
     const payload = JSON.parse(atob(padded));

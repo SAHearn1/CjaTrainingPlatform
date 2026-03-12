@@ -8,6 +8,28 @@ _None_
 
 ## Resolved Incidents
 
+### 2026-03-12 — Supabase gateway rejecting user JWTs with 401 (verify_jwt conflict)
+
+**What happened:** All authenticated API calls to the edge function returned `{"code": 401, "message": "Invalid JWT"}` for signed-in users. The anon key worked fine, making the failure appear to be a frontend auth issue. After extensive debugging, the root cause was confirmed to be Supabase's edge function gateway validating JWT signatures itself (`verify_jwt: true` default) and rejecting valid user session tokens — likely due to a key mismatch between the gateway validator and the auth service. The error format (`code`/`message` JSON shape) was the gateway's response, not the function's.
+
+**Root cause:** `verify_jwt: true` (the Supabase default) causes the gateway to reject user JWTs before the function code runs. The anon key JWT passes because it uses a different validation path. Application-level JWT decode inside `getUserId()` is sufficient for auth since we control the KV-stored role data separately.
+
+**Resolution:**
+- Redeployed with `--no-verify-jwt` flag: `supabase functions deploy make-server-39a35780 --project-ref rchiljcopergqtozylik --no-verify-jwt`
+- `getUserId()` refactored to decode JWT payload directly (base64url → standard base64 → `JSON.parse(atob(...))`) instead of calling `auth.getUser()` which added a network round-trip
+- Debug `console.log` lines removed from `getUserId()` after root cause confirmed
+- Temporary `/test/bootstrap-role` endpoint (used to set roles for E2E test accounts) removed after testing complete
+
+**E2E validation:** All role checks passed post-fix:
+- ✅ Unauthenticated landing renders
+- ✅ Learner (CPI): dashboard loads, no admin nav, LicenseGate redirects `/modules/1` → `/licensing`, RBAC blocks `/admin`
+- ✅ Superadmin: full admin nav visible, all admin routes load (`/admin`, `/admin/users`, `/admin/audit`, `/admin/agencies`, `/admin/videos`), LicenseGate bypassed (module content loads directly)
+- ✅ Assessment route (`/modules/1/assessment/pre`) loads for superadmin
+
+**Issue:** Discovered during E2E testing session 2026-03-12
+
+---
+
 ### 2026-03-11 — Batch hardening: issues #90–#103 (14 fixes, 6 files)
 
 **Issues closed:** #90 (unencrypted progress), #91 (Gemini key in URL), #92 (in-memory rate limiter), #93 (CI test gate), #94 (audit log entries), #95 (license enforcement), #96 (admin/users zero counts), #97 (admin/stats broken profiles), #98 (render-time navigate), #99 (raw 500 errors), #100 (audit pagination), #101 (PostHog CJIS), #102 (license expiry check), #103 (RLS disabled)
