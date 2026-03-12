@@ -7,7 +7,7 @@
  * PasswordStrengthMeter: CJIS 5.6.2.1 password policy UI
  */
 import { useState, useEffect, useCallback, useRef, type ReactNode } from "react";
-import { useNavigate } from "react-router";
+import { Navigate, Outlet, useNavigate } from "react-router";
 import {
   Shield,
   ShieldCheck,
@@ -177,6 +177,43 @@ export function RequireRole({
   }
 
   return <>{children}</>;
+}
+
+/**
+ * RequireLicense — redirects unlicensed learners to /licensing.
+ * Admin/superadmin bypass this check (they are platform operators, not learners).
+ */
+export function RequireLicense({ children }: { children: ReactNode }) {
+  const { licenseActive, profile, loading } = useAuth();
+  const role = profile?.role || "learner";
+  const tier = getAccessTier(role);
+
+  // Still loading — don't flash a redirect
+  if (loading) return null;
+
+  // Platform operators bypass license requirement
+  if (tier === "admin" || tier === "superadmin") return <>{children}</>;
+
+  if (!licenseActive) {
+    return <Navigate to="/licensing" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+/**
+ * LicenseGate — layout-style version of RequireLicense for use as a React Router
+ * layout route. Renders <Outlet /> for child routes when license is active.
+ */
+export function LicenseGate() {
+  const { licenseActive, profile, loading } = useAuth();
+  const role = profile?.role || "learner";
+  const tier = getAccessTier(role);
+
+  if (loading) return null;
+  if (tier === "admin" || tier === "superadmin") return <Outlet />;
+  if (!licenseActive) return <Navigate to="/licensing" replace />;
+  return <Outlet />;
 }
 
 function AccessDenied() {

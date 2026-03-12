@@ -5,6 +5,7 @@ import { Layout } from "./components/Layout";
 import { RootWrapper } from "./components/RootWrapper";
 import { ResetPassword } from "./components/ResetPassword";
 import { CertificateVerify } from "./components/CertificateVerify";
+import { LicenseGate } from "./components/SecurityBadge";
 
 // Lazy-loaded route components for code splitting
 const Dashboard = lazy(() => import("./components/Dashboard").then(m => ({ default: m.Dashboard })));
@@ -45,9 +46,14 @@ export const router = createBrowserRouter([
         children: [
           { path: "dashboard", Component: Dashboard },
           { path: "modules", Component: ModuleList },
-          { path: "modules/:moduleId", Component: ModuleDetail },
-          { path: "modules/:moduleId/assessment/:type", Component: Assessment },
-          { path: "modules/:moduleId/simulation", Component: Simulation },
+          {
+            Component: LicenseGate,
+            children: [
+              { path: "modules/:moduleId", Component: ModuleDetail },
+              { path: "modules/:moduleId/assessment/:type", Component: Assessment },
+              { path: "modules/:moduleId/simulation", Component: Simulation },
+            ],
+          },
           { path: "certificates", Component: Certificate },
           { path: "admin", Component: AdminDashboard },
           { path: "admin/users", Component: UserManagement },

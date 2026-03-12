@@ -180,12 +180,19 @@ app.put("/make-server-39a35780/profile", async (c) => {
   try {
     const body = await c.req.json();
     const existing = await encryptedGet<any>(kv.get, `user:${userId}:profile`);
-    // Strip server-controlled fields — users must not self-assign role, userId, or joinedAt.
-    // role is only settable via PUT /admin/users/:id/role (requires admin/superadmin JWT).
-    const { role: _role, userId: _uid, joinedAt: _joinedAt, ...safeBody } = body;
+    // Strip server-controlled fields. userId and joinedAt are always server-assigned.
+    // role may be self-set only to a learner-tier professional role; admin/superadmin
+    // assignment is reserved for PUT /admin/users/:id/role.
+    const SELF_REGISTERABLE_ROLES = [
+      "learner", "law_enforcement", "cpi", "prosecutor", "judge",
+      "medical", "school", "victim_advocate", "forensic_interviewer", "mandated_reporter",
+    ];
+    const { role: rawRole, userId: _uid, joinedAt: _joinedAt, ...safeBody } = body;
+    const allowedRole = rawRole && SELF_REGISTERABLE_ROLES.includes(rawRole) ? rawRole : undefined;
     const profile = {
       ...(existing || {}),
       ...safeBody,
+      ...(allowedRole !== undefined ? { role: allowedRole } : {}),
       userId,
       updatedAt: new Date().toISOString(),
     };

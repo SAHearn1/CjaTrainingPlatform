@@ -174,7 +174,7 @@ export function ModuleDetail() {
       : "Complete each section carefully — your pre-assessment indicates this content will be new. Take notes in the Reflection prompts as you go."
     : null;
 
-  async function handleDownloadSection(section: (typeof module.sections)[0]) {
+  async function handleDownloadSection(section: (typeof MODULES)[0]["sections"][0]) {
     const { jsPDF } = await import("jspdf");
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "letter" });
 
@@ -205,7 +205,7 @@ export function ModuleDetail() {
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...CANVAS);
     doc.text("Trauma-Informed Investigation Training Platform", 14, 19);
-    doc.text(`Module ${module.id}: ${module.title}`, 14, 25);
+    doc.text(`Module ${module!.id}: ${module!.title}`, 14, 25);
 
     // Module badge (right side)
     doc.setFillColor(...GOLD);
@@ -213,7 +213,7 @@ export function ModuleDetail() {
     doc.setTextColor(...EVERGREEN);
     doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
-    doc.text(`MODULE ${module.id}`, pw - 26, 12, { align: "center" });
+    doc.text(`MODULE ${module!.id}`, pw - 26, 12, { align: "center" });
     doc.setFontSize(7);
     doc.text(section.phase.toUpperCase(), pw - 26, 18, { align: "center" });
 
@@ -303,7 +303,7 @@ export function ModuleDetail() {
       doc.text(`Page ${i} of ${pageCount}`, pw - 14, ph - 6, { align: "right" });
     }
 
-    doc.save(`RootWork_Module${module.id}_${section.phase}_Reference.pdf`);
+    doc.save(`RootWork_Module${module!.id}_${section.phase}_Reference.pdf`);
   }
 
   const buildModuleOverviewTTS = () => {

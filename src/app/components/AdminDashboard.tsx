@@ -57,6 +57,7 @@ interface AdminStatsData {
   completionRate: number;
   avgScore: number;
   roleBreakdown: { name: string; learners: number; completion: number }[];
+  agencyBreakdown?: { name: string; learners: number; completion: number }[];
   moduleCompletion: { module: string; completed: number; inProgress: number; notStarted: number }[];
   monthlyEnrollment?: { month: string; enrolled: number }[];
   assessmentDistribution?: { range: string; count: number }[];
