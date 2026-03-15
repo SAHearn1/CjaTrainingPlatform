@@ -1053,7 +1053,22 @@ app.get("/make-server-39a35780/admin/audit", async (c) => {
       ? btoa(String(new Date(nextEntry.timestamp).getTime()))
       : null;
 
-    return c.json({ entries: page, nextCursor, total: sorted.length });
+    // CJIS 5.4.1.1: Enrich each index entry with the full encrypted audit record.
+    // Full records are stored at audit:{userId}:{ts} and contain all event details.
+    const enriched = await Promise.all(
+      page.map(async (indexEntry: any) => {
+        try {
+          const ts = new Date(indexEntry.timestamp).getTime();
+          const full = await encryptedGet<any>(kv.get, `audit:${indexEntry.userId}:${ts}`);
+          if (full) return full;
+          return { ...indexEntry, full_record_unavailable: true };
+        } catch {
+          return { ...indexEntry, full_record_unavailable: true };
+        }
+      })
+    );
+
+    return c.json({ entries: enriched, nextCursor, total: sorted.length });
   } catch (e) {
     console.error("Audit log fetch error:", e);
     return c.json({ error: "Internal server error" }, 500);
