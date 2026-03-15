@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router";
 import {
   TreePine,
   ArrowRight,
@@ -25,6 +26,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { PhaseIcon } from "./PhaseIcon";
 import { useAuth } from "./AuthContext";
 import { rootyChat } from "./api";
+import { ROLE_LABELS } from "./data";
 
 interface OnboardingStep {
   id: string;
@@ -141,9 +143,49 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
 
 const STORAGE_KEY = "rootwork_onboarding_complete";
 
+interface RoleModuleRec {
+  id: number;
+  title: string;
+  reason: string;
+}
+
+const ROLE_MODULE_RECS: Record<string, RoleModuleRec> = {
+  law_enforcement: { id: 2, title: "Communication & Interviewing", reason: "Trauma-informed interview techniques are foundational for field investigations." },
+  cpi: { id: 1, title: "Trauma-Informed Foundations", reason: "Start here to ground your investigative practice in the neuroscience of trauma." },
+  prosecutor: { id: 3, title: "Disability Law & Rights", reason: "Legal evidentiary standards and accommodation requirements affect every prosecution." },
+  judge: { id: 3, title: "Disability Law & Rights", reason: "Understanding accommodation law and trauma-informed testimony standards is essential." },
+  medical: { id: 4, title: "Forensic Evidence", reason: "Medical documentation and forensic injury interpretation are your core contribution to MDTs." },
+  school: { id: 7, title: "Mandated Reporter Essentials", reason: "Statutory reporting duties, timelines, and immunity protections — start here." },
+  advocate: { id: 6, title: "Preventing Secondary Trauma", reason: "Protecting your own wellbeing is the prerequisite for sustained effective advocacy." },
+  forensic: { id: 2, title: "Communication & Interviewing", reason: "Evidence-based interviewing protocols and developmental communication are your specialty." },
+  mandated_reporter: { id: 7, title: "Mandated Reporter Essentials", reason: "Statutory reporting duties, timelines, and immunity protections are your starting point." },
+  instructor: { id: 1, title: "Trauma-Informed Foundations", reason: "Master the full framework before facilitating it for others." },
+};
+
+const DEFAULT_MODULE_REC: RoleModuleRec = { id: 1, title: "Trauma-Informed Foundations", reason: "Begin with the core framework that underpins every discipline in this platform." };
+
 export function OnboardingGuide() {
+  const navigate = useNavigate();
+  const { profile } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+
+  const role = profile?.role ?? "cpi";
+  const roleLabel = ROLE_LABELS[role] ?? role;
+  const moduleRec = ROLE_MODULE_RECS[role] ?? DEFAULT_MODULE_REC;
+
+  // Replace generic "ready" step with role-specific path recommendation
+  const personalizedSteps: OnboardingStep[] = [
+    ...ONBOARDING_STEPS.slice(0, -1),
+    {
+      id: "ready",
+      title: `You're All Set, ${roleLabel.split(" ")[0]}! 🎉`,
+      description: `Your recommended starting point as a ${roleLabel}.`,
+      icon: <GraduationCap className="w-6 h-6" />,
+      detail: `Based on your role as a ${roleLabel}, we recommend starting with Module ${moduleRec.id}: ${moduleRec.title}. ${moduleRec.reason} Begin with the Pre-Assessment to establish your baseline, then work through all 5Rs sections. Click "Start Module" below to begin.`,
+      tip: "The floating help button (bottom-right) gives you quick access to this tour, platform tips, and the 5Rs/TRACE reference at any time.",
+    },
+  ];
 
   useEffect(() => {
     const completed = localStorage.getItem(STORAGE_KEY);
@@ -154,8 +196,14 @@ export function OnboardingGuide() {
     }
   }, []);
 
+  const handleComplete = () => {
+    localStorage.setItem(STORAGE_KEY, "true");
+    setIsOpen(false);
+    navigate(`/modules/${moduleRec.id}`);
+  };
+
   const handleNext = () => {
-    if (currentStep < ONBOARDING_STEPS.length - 1) {
+    if (currentStep < personalizedSteps.length - 1) {
       setCurrentStep((prev) => prev + 1);
     } else {
       handleComplete();
@@ -166,18 +214,13 @@ export function OnboardingGuide() {
     if (currentStep > 0) setCurrentStep((prev) => prev - 1);
   };
 
-  const handleComplete = () => {
-    localStorage.setItem(STORAGE_KEY, "true");
-    setIsOpen(false);
-  };
-
   const handleSkip = () => {
     localStorage.setItem(STORAGE_KEY, "true");
     setIsOpen(false);
   };
 
-  const step = ONBOARDING_STEPS[currentStep];
-  const progress = ((currentStep + 1) / ONBOARDING_STEPS.length) * 100;
+  const step = personalizedSteps[currentStep];
+  const progress = ((currentStep + 1) / personalizedSteps.length) * 100;
 
   if (!isOpen) return null;
 
@@ -226,7 +269,7 @@ export function OnboardingGuide() {
 
           {/* Step indicator dots */}
           <div className="flex items-center justify-center gap-1.5 pt-4 px-6">
-            {ONBOARDING_STEPS.map((_, i) => (
+            {personalizedSteps.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setCurrentStep(i)}
@@ -258,7 +301,7 @@ export function OnboardingGuide() {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground mb-0.5">
-                      Step {currentStep + 1} of {ONBOARDING_STEPS.length}
+                      Step {currentStep + 1} of {personalizedSteps.length}
                     </p>
                     <h2>{step.title}</h2>
                     <p className="text-sm text-muted-foreground">{step.description}</p>
@@ -305,9 +348,9 @@ export function OnboardingGuide() {
               onClick={handleNext}
               className="px-6 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm hover:opacity-90 transition-opacity flex items-center gap-2"
             >
-              {currentStep === ONBOARDING_STEPS.length - 1 ? (
+              {currentStep === personalizedSteps.length - 1 ? (
                 <>
-                  Get Started <Sparkles className="w-4 h-4" />
+                  Start Module {moduleRec.id} <Sparkles className="w-4 h-4" />
                 </>
               ) : (
                 <>
