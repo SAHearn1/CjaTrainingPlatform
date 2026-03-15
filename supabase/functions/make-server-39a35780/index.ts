@@ -168,7 +168,15 @@ app.post("/make-server-39a35780/signup", async (c) => {
     });
     if (error) {
       console.error("Signup error:", error.message);
-      return c.json({ error: `Signup failed: ${error.message}` }, 400);
+      // Return a sanitized message — never expose raw Supabase/internal error details to the client
+      const msg = error.message?.toLowerCase() ?? "";
+      if (msg.includes("already") || msg.includes("duplicate") || msg.includes("exists")) {
+        return c.json({ error: "An account with this email already exists." }, 400);
+      }
+      if (msg.includes("invalid") || msg.includes("validation") || msg.includes("format")) {
+        return c.json({ error: "Invalid signup data. Please check your input." }, 422);
+      }
+      return c.json({ error: "Signup failed. Please try again." }, 400);
     }
     // Audit: successful signup
     await auditLog("auth:signup", data.user.id, "success", `New user created: ${email}`, c);
