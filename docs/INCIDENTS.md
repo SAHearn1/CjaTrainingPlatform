@@ -48,7 +48,27 @@ _None_
 **Lint errors:** 0 (down from 58 at Sprint 2 start). CI lint gate re-enabled.
 
 **Remaining Sprint 2:** None.
-**Sprint 3 (#125–#130, #135):** Ready to begin.
+**Sprint 3 (#125–#130, #135):** Complete — see entry below.
+
+---
+
+### 2026-03-15 — Sprint 3 Architecture Hardening complete (issues #125–#130, #135)
+
+**Issues closed:** #125, #126, #127, #128, #129, #130, #135
+
+**Summary of changes:**
+
+- **#128 (Rate limiter):** Extended `checkRateLimit` to `/certificates/generate` (5/15 min) and `/rooty/chat` (20/15 min). All 4 guarded endpoints documented with fail-open policy note.
+- **#129 (Figma asset audit):** No active `figma:asset/` imports in source — plugin already handles all cases. No code change required.
+- **#130 (Legal pages):** Created `src/app/components/LegalPages.tsx` with 4 components: `PrivacyPolicy`, `TermsOfService`, `SecurityPage`, `AccessibilityStatement`. Added public routes `/privacy`, `/terms`, `/security`, `/accessibility` (no auth required).
+- **#126 (Module access):** Added `SERVER_MODULE_ACCESS` map + `canAccessModuleServer()` to edge function. `PUT /progress/:moduleId` and `POST /simulations` now enforce role-based module access server-side (defense in depth per CJIS 5.4). Design decision documented in `security.ts`.
+- **#127 (Supervisor API):** Added `GET /supervisor/team-progress` endpoint returning all learner-tier user progress (v1 org-wide scope; per-team scoping deferred to future team assignment model). Updated `InstructorDashboard.tsx` to use the new `getSupervisorTeamProgress()` API function instead of admin-only endpoints.
+- **#125 (Key rotation):** Created `docs/KEY_ROTATION_PLAN.md` documenting current PBKDF2/AES-256-GCM architecture, two identified gaps (no key versioning, key tied to service role key), and phased remediation plan per CJIS 5.10.1.2.
+- **#135 (Server-side PDF):** Added `GET /certificates/:certId/pdf` endpoint using `npm:pdf-lib`. Generates A4-landscape branded PDF with HMAC-SHA256 integrity fingerprint embedded in metadata and footer. Replaced `window.print()` in `Certificate.tsx` with fetch-and-download using `downloadCertificatePDF()`.
+
+**Commits:** `bc000db` (#128, #130), `9a2eae9` (#125, #126, #127), `f4c4c58` (#135)
+**Edge function:** Redeployed with rate limiter, module access, supervisor endpoint, and PDF endpoint.
+**Remaining:** All Sprint 1–3 issues resolved. Platform ready for pre-GA review.
 
 ## Resolved Incidents
 
