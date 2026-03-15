@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router";
 import { MODULES } from "./data";
 import {
@@ -16,6 +16,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { TTSControls, InlineTTSButton } from "./TTSControls";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { useAuth } from "./AuthContext";
+import { useBeforeSessionTimeout } from "./SecurityBadge";
 
 /**
  * Mulberry32 seeded PRNG — deterministic per seed.
@@ -62,13 +63,39 @@ export function Assessment() {
     return shuffleWithSeed(assessment.questions, seed >>> 0);
   }, [assessment, user?.id, moduleId, type]);
 
-  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const draftKey = `draft:assessment:${moduleId}:${type}`;
+
+  const [currentQuestion, setCurrentQuestion] = useState<number>(() => {
+    try { return Number(JSON.parse(localStorage.getItem(draftKey) || "{}").currentQuestion ?? 0); }
+    catch { return 0; }
+  });
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [answers, setAnswers] = useState<(number | null)[]>(
-    new Array(assessment?.questions.length || 0).fill(null)
-  );
+  const [answers, setAnswers] = useState<(number | null)[]>(() => {
+    try {
+      const draft = JSON.parse(localStorage.getItem(draftKey) || "{}");
+      return draft.answers ?? new Array(assessment?.questions.length || 0).fill(null);
+    } catch {
+      return new Array(assessment?.questions.length || 0).fill(null);
+    }
+  });
   const [showExplanation, setShowExplanation] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+
+  // Flush draft on session timeout warning (CJIS 5.5.5 / #134)
+  useBeforeSessionTimeout(() => {
+    if (!isComplete) {
+      try { localStorage.setItem(draftKey, JSON.stringify({ currentQuestion, answers })); }
+      catch { /* localStorage unavailable */ }
+    }
+  });
+
+  // Clear draft on successful completion
+  useEffect(() => {
+    if (isComplete) {
+      try { localStorage.removeItem(draftKey); }
+      catch { /* localStorage unavailable */ }
+    }
+  }, [isComplete, draftKey]);
 
   if (!module || !assessment) {
     return (

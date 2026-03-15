@@ -334,6 +334,8 @@ export function SessionMonitor() {
       // Warning before timeout
       const timeUntilTimeout = CJIS_SESSION_CONFIG.INACTIVITY_TIMEOUT_MS - inactiveMs;
       if (timeUntilTimeout <= CJIS_SESSION_CONFIG.WARNING_BEFORE_TIMEOUT_MS && !showWarning) {
+        // Signal components to flush any in-progress draft state
+        window.dispatchEvent(new CustomEvent("cjis:session-warning"));
         setShowWarning(true);
         setRemainingSeconds(Math.ceil(timeUntilTimeout / 1000));
       }
@@ -430,6 +432,22 @@ export function SessionMonitor() {
       </motion.div>
     </AnimatePresence>
   );
+}
+
+// ──────────────────────────────────────────────────────────────────
+// useBeforeSessionTimeout — #134
+// Registers a callback fired when SessionMonitor emits cjis:session-warning.
+// Use in any component with unsaved draft state (e.g. Assessment partial answers).
+// ──────────────────────────────────────────────────────────────────
+
+export function useBeforeSessionTimeout(onWarning: () => void) {
+  const savedRef = useRef(onWarning);
+  useEffect(() => { savedRef.current = onWarning; });
+  useEffect(() => {
+    const handler = () => savedRef.current();
+    window.addEventListener("cjis:session-warning", handler);
+    return () => window.removeEventListener("cjis:session-warning", handler);
+  }, []);
 }
 
 // ──────────────────────────────────────────────────────────────────
