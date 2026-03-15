@@ -52,6 +52,12 @@ export default defineConfig({
       reporter: ['text', 'lcov'],
       include: ['src/app/components/**'],
       exclude: ['src/app/components/ui/**'],
+      thresholds: {
+        // CJIS-critical paths: security, RBAC guards, API layer
+        'src/app/components/security.ts': { branches: 80, functions: 80 },
+        'src/app/components/SecurityBadge.tsx': { branches: 70, functions: 70 },
+        'src/app/components/api.ts': { branches: 60, functions: 60 },
+      },
     },
   },
 
