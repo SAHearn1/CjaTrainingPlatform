@@ -29,6 +29,27 @@ _None_
 
 **Issue:** Sprint 1 batch — issues #104–#116
 
+### 2026-03-15 — Sprint 2 execution complete (issues #120–#124, #131–#134, #136)
+
+**Issues closed:** #120, #121, #122, #123, #124, #131, #132, #133, #134, #136
+
+**Summary:**
+- **#120/121 (Lint Batch 1+2):** WCAG a11y fixes across 9+ files (aria labels, htmlFor/id pairing, role="button", tabIndex on interactive divs). React hook purity fixes: `Math.random()`/`Date.now()` at render time moved to `useRef`/`useState` lazy initializer; `CertificateVerify.tsx` and `LicensingSuccess.tsx` async `useEffect` pattern with `isMounted` guard.
+- **#122 (Lint Batch 3):** All 14 remaining lint errors fixed (empty catches, `@ts-ignore`→`@ts-expect-error`, `no-useless-escape` in two regex patterns). `continue-on-error: true` removed from CI lint step — lint now gates PRs.
+- **#131 (Signup role selection):** Role selection step added to signup flow with 9 professional role cards, `SELF_REGISTERABLE_ROLES` stale IDs fixed (`victim_advocate`→`advocate`, `forensic_interviewer`→`forensic`).
+- **#132 (Onboarding personalization):** `OnboardingGuide` generates role-specific "ready" step at runtime; "Start Module N" CTA navigates to recommended first module per role.
+- **#133 (Module access indicator):** `ROLE_MODULE_RECS` map moved to `data/constants.ts` (shared); gold "Recommended" badge shown on unstarted recommended module card in `ModuleList`.
+- **#134 (Session timeout draft save):** `SessionMonitor` dispatches `cjis:session-warning` event on warning; `useBeforeSessionTimeout` hook exported; `Assessment.tsx` saves/restores partial answers to localStorage.
+- **#136 (In-app password change):** New `POST /auth/change-password` edge function endpoint (verifies current password, enforces CJIS 5.6.2.1 policy, audit logs). `Settings.tsx` inline expandable form with `PasswordStrengthMeter`. Edge function redeployed.
+- **#123 (RBAC API tests):** 13 tests in `api.test.ts` covering Auth header forwarding, 401/403/429 error propagation, changePassword edge cases.
+- **#124 (Component tests):** 17 tests in `SecurityBadge.test.tsx` for `RequireRole`, `LicenseGate`, `RequireSuperAdmin`; per-file coverage thresholds added to `vite.config.ts`.
+
+**Total tests:** 62 passing (up from 32).
+**Lint errors:** 0 (down from 58 at Sprint 2 start). CI lint gate re-enabled.
+
+**Remaining Sprint 2:** None.
+**Sprint 3 (#125–#130, #135):** Ready to begin.
+
 ## Resolved Incidents
 
 ### 2026-03-15 — Enterprise production gap analysis + GitHub issue batch creation (#104–#136)
