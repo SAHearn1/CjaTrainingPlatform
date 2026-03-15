@@ -19,7 +19,7 @@ RootWork Trauma-Informed Investigation Training Platform — a CJIS-compliant LM
               ↓
 [Supabase Edge Functions (Deno + Hono.js)]
   └─ supabase/functions/make-server-39a35780/index.ts
-     ├─ Auth: Supabase Admin SDK (JWT verification)
+     ├─ Auth: JWT subject decoded in-function, RBAC loaded from KV profile
      ├─ Data: KV store pattern (single table kv_store_39a35780)
      ├─ Encryption: AES-256-GCM (encryption.tsx)
      └─ Audit: CJIS 5.4.1.1 event logging
@@ -37,6 +37,7 @@ RootWork Trauma-Informed Investigation Training Platform — a CJIS-compliant LM
        audit_idx:{ts}            — lightweight AuditLog index
        license:{sessionId}       — encrypted License
        platform:video_registry   — VideoRegistry (unencrypted)
+       platform:settings         — PlatformSettings (unencrypted; licensingEnabled flag)
               ↓
 [External Services]
   ├─ Stripe: Checkout sessions + webhook
@@ -49,12 +50,14 @@ RootWork Trauma-Informed Investigation Training Platform — a CJIS-compliant LM
 
 | Boundary | Technology | Notes |
 |----------|-----------|-------|
-| Auth enforcement | Supabase Auth JWT | Verified server-side on every request |
+| Auth enforcement | Supabase Auth JWT | User JWT subject decoded in the function; deployment must keep gateway `verify_jwt` disabled |
 | Data persistence | Supabase KV (single table) | All data encrypted at rest with AES-256-GCM |
 | RBAC | Custom roles in KV profile | learner < supervisor < admin < superadmin |
 | PDF generation | jspdf + window.print() | Client-side only; server-side PDF deferred to v1.1 |
 | Certificate verification | Public GET /certificates/:certId | No auth required |
 | Video registry | KV key platform:video_registry | Runtime-configurable, no redeploy needed |
+| Platform settings | KV key platform:settings | Superadmin-writable; controls licensingEnabled flag |
+| Licensing gate | LicenseGate / RequireLicense components | Bypassed when platformLicensingEnabled=false; /licensing routes restricted to superadmin |
 
 ## State Management
 
@@ -64,6 +67,8 @@ All auth/user state in `AuthContext` (`src/app/components/AuthContext.tsx`):
 - `accessToken` — JWT for API calls
 - `progress` — ModuleProgress[] array
 - `watchedVignettes` — string[] of vignette keys
+- `licenseActive` — whether current user has an active license
+- `platformLicensingEnabled` — platform-wide licensing gate flag (fetched from public /platform/settings on mount)
 
 No Redux, Zustand, or other state libraries. No Supabase Realtime subscriptions.
 

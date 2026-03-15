@@ -44,8 +44,10 @@ Note: The following scripts are configured in package.json: `lint`, `lint:strict
 ## Deployment
 
 - **Frontend**: Vercel (auto-deploy from main branch)
-- **Backend**: Supabase Edge Functions (deploy via `supabase functions deploy make-server-39a35780`)
+- **Backend**: Supabase Edge Functions (deploy via `supabase functions deploy make-server-39a35780 --no-verify-jwt`)
 - **Database**: Supabase PostgreSQL (managed, no migrations needed for KV pattern)
+
+Note: gateway JWT verification must remain disabled for this function deployment. The function decodes the user JWT payload locally and loads RBAC state from the KV-backed profile.
 
 ## Key API Routes (server)
 
@@ -73,6 +75,8 @@ All routes prefixed `/make-server-39a35780/`:
 | GET | /admin/users | Admin JWT | User list |
 | PUT | /admin/users/:id/role | Admin JWT | Change user role |
 | GET | /admin/audit | Superadmin JWT | Audit log |
+| GET | /platform/settings | Public | Platform feature flags (licensingEnabled) |
+| PUT | /platform/settings | Superadmin JWT | Update platform feature flags |
 | POST | /rooty/chat | Any JWT | Gemini chatbot |
 
 ---

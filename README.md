@@ -29,7 +29,8 @@ RootWork equips child abuse investigation professionals with trauma-informed ski
 - Branching simulation scenarios (TRACE-based decision trees)
 - Video vignette player with transcript support
 - PDF certificate generation on module completion
-- Stripe-powered license tiers (Individual / Agency / Enterprise)
+- Stripe-powered license tiers (Individual / Agency / Enterprise) — toggled on/off by superadmin
+- Superadmin platform settings panel (Admin → Settings tab) to enable/disable licensing gate
 - Role-based access control (RBAC) — learner, supervisor, admin, superadmin
 - AES-256-GCM encryption on all stored user data (CJIS 5.10.1.2)
 - Audit logging for all sensitive operations (CJIS 5.4.7)
@@ -66,7 +67,7 @@ RootWork equips child abuse investigation professionals with trauma-informed ski
 ```bash
 git clone https://github.com/SAHearn1/CjaTrainingPlatform.git
 cd CjaTrainingPlatform
-npm install
+pnpm install
 ```
 
 ### Configuration
@@ -84,8 +85,11 @@ The `utils/supabase/info.tsx` file contains the Supabase project ID and public a
 ### Development
 
 ```bash
-npm run dev      # Start Vite dev server at http://localhost:5173
-npm run build    # Production build → dist/
+pnpm dev         # Start Vite dev server at http://localhost:5173
+pnpm build       # Production build → dist/
+pnpm typecheck   # TypeScript check
+pnpm lint        # ESLint
+pnpm test        # Vitest run
 ```
 
 ### Deployment
@@ -95,8 +99,10 @@ A `vercel.json` is included for zero-config Vercel deployment. The build command
 For the Supabase Edge Function backend, deploy via the Supabase CLI:
 
 ```bash
-supabase functions deploy make-server-39a35780
+supabase functions deploy make-server-39a35780 --no-verify-jwt
 ```
+
+Authenticated user JWTs are decoded inside the edge function. If `--no-verify-jwt` is omitted, the Supabase gateway can reject valid user session tokens before the function runs.
 
 Set the required secrets in the Supabase dashboard under **Project Settings → Edge Functions → Secrets**.
 
@@ -113,10 +119,16 @@ See `.env.example` for the full list. Server-side secrets (Stripe, Gemini, Supab
 │   ├── security.ts        # RBAC permission helpers
 │   └── AuthContext.tsx    # Auth state & session management
 ├── supabase/functions/    # Edge Function backend (Hono.js)
-│   └── server/index.tsx   # All API endpoints
+│   └── make-server-39a35780/index.ts   # All API endpoints
 ├── utils/supabase/        # Supabase client config
 └── src/styles/            # Tailwind + theme CSS variables
 ```
+
+## User Flow
+
+After login, all authenticated users are sent directly to `/modules` (training content). The licensing gate is **disabled by default** — no payment is required to access training. When ready to go live with payments, a superadmin can enable the gate from **Admin → Settings**.
+
+The `/licensing` payment page is restricted to superadmin only and is not visible to learners while the gate is disabled.
 
 ## Security
 
