@@ -27,15 +27,11 @@ jobs:
       - name: Type check
         run: npm run typecheck
 
-      # Lint runs and reports issues; pre-existing violations are tracked but do
-      # not block PRs. Once the backlog of pre-existing issues is cleared, remove
-      # `continue-on-error` so new violations fail the build immediately.
       - name: Lint
         id: lint
         run: |
           mkdir -p reports
           npm run lint > reports/eslint.txt 2>&1
-        continue-on-error: true
 
       - name: Upload lint report
         if: always()

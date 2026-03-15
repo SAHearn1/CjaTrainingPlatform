@@ -117,15 +117,15 @@ export function useAmbientAudio() {
   const teardownNodes = useCallback(() => {
     const nodes = nodesRef.current;
     nodes.oscillators.forEach((osc) => {
-      try { osc.stop(); osc.disconnect(); } catch {}
+      try { osc.stop(); osc.disconnect(); } catch { /* node already stopped/disconnected */ }
     });
     if (nodes.lfo) {
-      try { nodes.lfo.stop(); nodes.lfo.disconnect(); } catch {}
+      try { nodes.lfo.stop(); nodes.lfo.disconnect(); } catch { /* node already stopped/disconnected */ }
     }
-    nodes.gains.forEach((g) => { try { g.disconnect(); } catch {} });
-    if (nodes.lfoGain) try { nodes.lfoGain.disconnect(); } catch {}
-    if (nodes.masterGain) try { nodes.masterGain.disconnect(); } catch {}
-    if (nodes.filter) try { nodes.filter.disconnect(); } catch {}
+    nodes.gains.forEach((g) => { try { g.disconnect(); } catch { /* node already disconnected */ } });
+    if (nodes.lfoGain) try { nodes.lfoGain.disconnect(); } catch { /* node already disconnected */ }
+    if (nodes.masterGain) try { nodes.masterGain.disconnect(); } catch { /* node already disconnected */ }
+    if (nodes.filter) try { nodes.filter.disconnect(); } catch { /* node already disconnected */ }
 
     nodesRef.current = {
       oscillators: [],
@@ -281,7 +281,7 @@ export function useAmbientAudio() {
     return () => {
       teardownNodes();
       if (ctxRef.current) {
-        try { ctxRef.current.close(); } catch {}
+        try { ctxRef.current.close(); } catch { /* AudioContext already closed */ }
         ctxRef.current = null;
       }
     };

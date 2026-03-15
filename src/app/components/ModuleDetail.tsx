@@ -66,7 +66,7 @@ export function ModuleDetail() {
     setReflections(updated);
     try {
       localStorage.setItem(`reflections:module:${moduleId}`, JSON.stringify(updated));
-    } catch {}
+    } catch { /* localStorage unavailable — non-critical */ }
   };
 
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());

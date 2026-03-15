@@ -110,7 +110,7 @@ function AdminDashboardInner() {
         try {
           const usersRes = await api.getAdminUsers(accessToken);
           if (usersRes.users) setUsers(usersRes.users);
-        } catch {}
+        } catch (e) { console.error('Failed to load admin users:', e); }
       } else {
         setError("The server returned no statistics data. Please try again.");
       }

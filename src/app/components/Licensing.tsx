@@ -291,7 +291,7 @@ export function Licensing() {
             borderColor: "var(--border)",
             backgroundColor: "var(--input-background)",
             color: "var(--foreground)",
-            // @ts-ignore
+            // @ts-expect-error — CSS custom property not in CSSProperties type
             "--tw-ring-color": "var(--gold-leaf)",
           }}
         />

@@ -466,7 +466,7 @@ export function PasswordStrengthMeter({
     { label: "Uppercase letter", met: /[A-Z]/.test(password) },
     { label: "Lowercase letter", met: /[a-z]/.test(password) },
     { label: "Digit", met: /[0-9]/.test(password) },
-    { label: "Special character", met: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password) },
+    { label: "Special character", met: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password) },
   ];
 
   if (!password) return null;
