@@ -151,6 +151,19 @@ export async function confirmLicense(token: string, sessionId: string) {
   }, token);
 }
 
+// ---------- Platform Settings ----------
+
+export async function getPlatformSettings(): Promise<{ licensingEnabled: boolean }> {
+  return request("/platform/settings");
+}
+
+export async function updatePlatformSettings(token: string, settings: { licensingEnabled: boolean }) {
+  return request("/platform/settings", {
+    method: "PUT",
+    body: JSON.stringify(settings),
+  }, token);
+}
+
 // ---------- Video Registry ----------
 
 export async function getVideoRegistry(): Promise<Record<string, any>> {

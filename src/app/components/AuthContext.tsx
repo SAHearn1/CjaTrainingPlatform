@@ -39,6 +39,7 @@ interface AuthState {
   progress: ModuleProgress[];
   watchedVignettes: string[];
   licenseActive: boolean;
+  platformLicensingEnabled: boolean;
 
   signUp: (email: string, password: string, name: string) => Promise<{ needsConfirmation?: boolean }>;
   signIn: (email: string, password: string) => Promise<void>;
@@ -63,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [progress, setProgress] = useState<ModuleProgress[]>([]);
   const [watchedVignettes, setWatchedVignettes] = useState<string[]>([]);
   const [licenseActive, setLicenseActive] = useState(false);
+  const [platformLicensingEnabled, setPlatformLicensingEnabled] = useState(false);
 
   // Guard: prevent onAuthStateChange from calling loadUserData with a stale
   // token before initSession has had a chance to refresh it.
@@ -100,9 +102,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setWatchedVignettes([]);
           setLicenseActive(false);
           if (isMounted) setLoading(false);
+          // Re-fetch public platform settings on sign-out (settings may have changed)
+          api.getPlatformSettings().then((s) => {
+            if (isMounted) setPlatformLicensingEnabled(s?.licensingEnabled ?? false);
+          }).catch(() => {/* non-blocking */});
         }
       }
     );
+
+    // Fetch public platform settings (no auth required)
+    api.getPlatformSettings().then((s) => {
+      setPlatformLicensingEnabled(s?.licensingEnabled ?? false);
+    }).catch(() => {/* non-blocking */});
 
     // On mount, force-refresh the session so we always get a valid JWT
     const initSession = async () => {
@@ -292,6 +303,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProgress([]);
     setWatchedVignettes([]);
     setLicenseActive(false);
+    // Re-fetch public settings so licensing state is current for next login
+    api.getPlatformSettings().then((s) => {
+      setPlatformLicensingEnabled(s?.licensingEnabled ?? false);
+    }).catch(() => {/* non-blocking */});
   }, []);
 
   const resetPassword = useCallback(async (email: string) => {
@@ -365,6 +380,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         progress,
         watchedVignettes,
         licenseActive,
+        platformLicensingEnabled,
         signUp,
         signIn,
         signOut,

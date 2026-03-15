@@ -5,7 +5,7 @@ import { Layout } from "./components/Layout";
 import { RootWrapper } from "./components/RootWrapper";
 import { ResetPassword } from "./components/ResetPassword";
 import { CertificateVerify } from "./components/CertificateVerify";
-import { LicenseGate } from "./components/SecurityBadge";
+import { LicenseGate, RequireSuperAdmin } from "./components/SecurityBadge";
 
 // Lazy-loaded route components for code splitting
 const Dashboard = lazy(() => import("./components/Dashboard").then(m => ({ default: m.Dashboard })));
@@ -58,8 +58,13 @@ export const router = createBrowserRouter([
           { path: "admin", Component: AdminDashboard },
           { path: "admin/users", Component: UserManagement },
           { path: "admin/audit", Component: AuditLog },
-          { path: "licensing", Component: Licensing },
-          { path: "licensing/success", Component: LicensingSuccess },
+          {
+            Component: RequireSuperAdmin,
+            children: [
+              { path: "licensing", Component: Licensing },
+              { path: "licensing/success", Component: LicensingSuccess },
+            ],
+          },
           { path: "settings", Component: Settings },
           { path: "instructor", Component: InstructorDashboard },
           { path: "admin/agencies", Component: AgencyManagement },

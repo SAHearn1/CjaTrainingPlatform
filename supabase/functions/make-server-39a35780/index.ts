@@ -220,8 +220,12 @@ app.put("/make-server-39a35780/profile", async (c) => {
 // ---------- License Gate ----------
 // CJIS / Business rule: only users with an active license may write training data.
 // Admin/superadmin are platform operators and bypass this requirement.
+// When platform licensingEnabled setting is false, all users bypass the license check.
 async function requireLicense(userId: string, userRole: string): Promise<boolean> {
   if (ADMIN_ROLES.includes(userRole)) return true;
+  // If licensing is disabled platform-wide, all users may access training data
+  const platformSettings = await kv.get("platform:settings") as any;
+  if (!platformSettings?.licensingEnabled) return true;
   const license = await kv.get(`user:${userId}:license`) as any;
   if (!license) return false;
   if (license.status !== "active") return false;
@@ -630,6 +634,48 @@ app.post("/make-server-39a35780/licensing/webhook", async (c) => {
   }
 
   return c.json({ received: true });
+});
+
+// ---------- Platform Settings ----------
+
+const PLATFORM_SETTINGS_KEY = "platform:settings";
+
+// GET /platform/settings — public, no auth required
+app.get("/make-server-39a35780/platform/settings", async (c) => {
+  try {
+    const settings = await kv.get(PLATFORM_SETTINGS_KEY) as any;
+    return c.json({ licensingEnabled: settings?.licensingEnabled ?? false });
+  } catch (_e) {
+    return c.json({ licensingEnabled: false });
+  }
+});
+
+// PUT /platform/settings — superadmin only
+app.put("/make-server-39a35780/platform/settings", async (c) => {
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized" }, 401);
+  const role = await getUserRole(userId);
+  if (role !== "superadmin") {
+    await auditLog("security:permission_denied", userId, "denied", "Attempted platform settings change without superadmin", c);
+    return c.json({ error: "Forbidden: superadmin only" }, 403);
+  }
+  try {
+    const body = await c.req.json();
+    const existing = (await kv.get(PLATFORM_SETTINGS_KEY) as any) || {};
+    const updated = {
+      ...existing,
+      ...(typeof body.licensingEnabled === "boolean" ? { licensingEnabled: body.licensingEnabled } : {}),
+      updatedAt: new Date().toISOString(),
+      updatedBy: userId,
+    };
+    await kv.set(PLATFORM_SETTINGS_KEY, updated);
+    await auditLog("admin:platform_settings_update", userId, "success",
+      `licensingEnabled=${updated.licensingEnabled}`, c);
+    return c.json({ settings: updated });
+  } catch (e) {
+    console.error("Platform settings update error:", e);
+    return c.json({ error: "Internal server error" }, 500);
+  }
 });
 
 // ---------- Video Registry ----------

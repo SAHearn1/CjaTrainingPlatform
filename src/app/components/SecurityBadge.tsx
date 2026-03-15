@@ -182,9 +182,10 @@ export function RequireRole({
 /**
  * RequireLicense — redirects unlicensed learners to /licensing.
  * Admin/superadmin bypass this check (they are platform operators, not learners).
+ * When platformLicensingEnabled is false, all users bypass the license check.
  */
 export function RequireLicense({ children }: { children: ReactNode }) {
-  const { licenseActive, profile, loading } = useAuth();
+  const { licenseActive, platformLicensingEnabled, profile, loading } = useAuth();
   const role = profile?.role || "learner";
   const tier = getAccessTier(role);
 
@@ -193,6 +194,9 @@ export function RequireLicense({ children }: { children: ReactNode }) {
 
   // Platform operators bypass license requirement
   if (tier === "admin" || tier === "superadmin") return <>{children}</>;
+
+  // Licensing disabled platform-wide — all users pass through
+  if (!platformLicensingEnabled) return <>{children}</>;
 
   if (!licenseActive) {
     return <Navigate to="/licensing" replace />;
@@ -204,15 +208,30 @@ export function RequireLicense({ children }: { children: ReactNode }) {
 /**
  * LicenseGate — layout-style version of RequireLicense for use as a React Router
  * layout route. Renders <Outlet /> for child routes when license is active.
+ * When platformLicensingEnabled is false, all users pass through without a license check.
  */
 export function LicenseGate() {
-  const { licenseActive, profile, loading } = useAuth();
+  const { licenseActive, platformLicensingEnabled, profile, loading } = useAuth();
   const role = profile?.role || "learner";
   const tier = getAccessTier(role);
 
   if (loading) return null;
   if (tier === "admin" || tier === "superadmin") return <Outlet />;
+  if (!platformLicensingEnabled) return <Outlet />;
   if (!licenseActive) return <Navigate to="/licensing" replace />;
+  return <Outlet />;
+}
+
+/**
+ * RequireSuperAdmin — route guard that only allows superadmin users.
+ * All other authenticated users are redirected to /dashboard.
+ */
+export function RequireSuperAdmin() {
+  const { profile, loading } = useAuth();
+  const role = profile?.role || "learner";
+
+  if (loading) return null;
+  if (role !== "superadmin") return <Navigate to="/dashboard" replace />;
   return <Outlet />;
 }
 

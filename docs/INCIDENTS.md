@@ -8,6 +8,28 @@ _None_
 
 ## Resolved Incidents
 
+### 2026-03-15 — Licensing gate blocking all learners from training content
+
+**What happened:** After logging in, all learner-role users were immediately redirected to `/licensing` because `LicenseGate` enforced a license check unconditionally. No learner had a license (Stripe not yet live), so the platform was inaccessible to all non-admin users. Additionally, the `/licensing` route was accessible to any authenticated user, exposing pricing/payment UI prematurely.
+
+**Root cause:** `LicenseGate` and `RequireLicense` did not check whether licensing was enabled at the platform level — they assumed licensing was always on. There was no superadmin-controlled toggle to disable the license gate. Post-login redirect landed on `/dashboard` rather than `/modules`.
+
+**Resolution:**
+- Added `GET /platform/settings` (public) and `PUT /platform/settings` (superadmin only) endpoints to edge function — returns/stores `{ licensingEnabled: boolean }` in KV under `platform:settings`
+- `requireLicense()` backend helper now reads platform settings and bypasses the license check when `licensingEnabled` is `false`
+- `AuthContext` fetches platform settings on mount (public, no auth required), exposes `platformLicensingEnabled` boolean
+- `LicenseGate` and `RequireLicense` pass through unconditionally when `platformLicensingEnabled` is `false`
+- `/licensing` and `/licensing/success` routes wrapped with `RequireSuperAdmin` guard — only superadmin can access
+- Post-login redirect changed from `/dashboard` to `/modules` in `Landing.tsx` (both modal auth flow and already-authed redirect)
+- Admin dashboard gains a "Settings" tab (superadmin only) with a toggle to enable/disable the licensing gate
+- Default state: `licensingEnabled = false` — all users go directly to training content
+
+**Deployed:** Edge function redeployed `--no-verify-jwt` (per prior incident pattern)
+
+**Issue:** Reported 2026-03-15
+
+---
+
 ### 2026-03-12 — Supabase gateway rejecting user JWTs with 401 (verify_jwt conflict)
 
 **What happened:** All authenticated API calls to the edge function returned `{"code": 401, "message": "Invalid JWT"}` for signed-in users. The anon key worked fine, making the failure appear to be a frontend auth issue. After extensive debugging, the root cause was confirmed to be Supabase's edge function gateway validating JWT signatures itself (`verify_jwt: true` default) and rejecting valid user session tokens — likely due to a key mismatch between the gateway validator and the auth service. The error format (`code`/`message` JSON shape) was the gateway's response, not the function's.

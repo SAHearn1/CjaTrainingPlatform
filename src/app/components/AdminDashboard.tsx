@@ -14,6 +14,10 @@ import {
   Target,
   Loader2,
   AlertCircle,
+  Settings,
+  CreditCard,
+  ToggleLeft,
+  ToggleRight,
 } from "lucide-react";
 import { motion } from "motion/react";
 import {
@@ -73,16 +77,23 @@ export function AdminDashboard() {
 }
 
 function AdminDashboardInner() {
-  const { accessToken } = useAuth();
-  const [activeTab, setActiveTab] = useState<"overview" | "roles" | "modules" | "learners">("overview");
+  const { accessToken, profile } = useAuth();
+  const isSuperAdmin = profile?.role === "superadmin";
+  const [activeTab, setActiveTab] = useState<"overview" | "roles" | "modules" | "learners" | "settings">("overview");
   const [stats, setStats] = useState<AdminStatsData | null>(null);
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [licensingEnabled, setLicensingEnabled] = useState(false);
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsSaved, setSettingsSaved] = useState(false);
 
   useEffect(() => {
     loadStats();
-  }, [accessToken]);
+    if (isSuperAdmin) {
+      api.getPlatformSettings().then((s) => setLicensingEnabled(s?.licensingEnabled ?? false)).catch((_e) => { /* non-blocking */ });
+    }
+  }, [accessToken, isSuperAdmin]);
 
   async function loadStats() {
     setLoading(true);
@@ -111,11 +122,28 @@ function AdminDashboardInner() {
     }
   }
 
+  async function toggleLicensing() {
+    if (!accessToken) return;
+    setSettingsLoading(true);
+    setSettingsSaved(false);
+    try {
+      const res = await api.updatePlatformSettings(accessToken, { licensingEnabled: !licensingEnabled });
+      setLicensingEnabled(res?.settings?.licensingEnabled ?? !licensingEnabled);
+      setSettingsSaved(true);
+      setTimeout(() => setSettingsSaved(false), 3000);
+    } catch (e: any) {
+      console.error("Platform settings update failed:", e.message);
+    } finally {
+      setSettingsLoading(false);
+    }
+  }
+
   const tabs = [
     { id: "overview" as const, label: "Overview", icon: BarChart3 },
     { id: "roles" as const, label: "Roles", icon: Users },
     { id: "modules" as const, label: "Modules", icon: BookOpen },
     { id: "learners" as const, label: "Learners", icon: Users },
+    ...(isSuperAdmin ? [{ id: "settings" as const, label: "Settings", icon: Settings }] : []),
   ];
 
   if (loading) {
@@ -504,6 +532,62 @@ function AdminDashboardInner() {
               </tbody>
             </table>
           </div>
+          </div>
+        </motion.div>
+      )}
+
+      {activeTab === "settings" && isSuperAdmin && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-4 max-w-2xl"
+        >
+          <div className="bg-card rounded-xl border border-border p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(13,59,34,0.08)" }}>
+                <CreditCard className="w-5 h-5" style={{ color: "#0D3B22" }} />
+              </div>
+              <div>
+                <h3 className="font-semibold text-sm">Licensing &amp; Payments</h3>
+                <p className="text-xs text-muted-foreground">Control whether learners must purchase a license to access training</p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between py-4 border-t border-border">
+              <div>
+                <p className="text-sm font-medium">Enable Licensing Gate</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  When enabled, learners must purchase a license before accessing modules and assessments.
+                  When disabled, all authenticated users can access training content without payment.
+                </p>
+              </div>
+              <button
+                onClick={toggleLicensing}
+                disabled={settingsLoading}
+                className="ml-6 shrink-0 transition-opacity disabled:opacity-50"
+                title={licensingEnabled ? "Click to disable licensing" : "Click to enable licensing"}
+              >
+                {licensingEnabled
+                  ? <ToggleRight className="w-10 h-10" style={{ color: "#0D3B22" }} />
+                  : <ToggleLeft className="w-10 h-10 text-muted-foreground" />
+                }
+              </button>
+            </div>
+
+            <div className="mt-4 rounded-lg px-4 py-3 text-xs"
+              style={{
+                background: licensingEnabled ? "rgba(201,168,76,0.08)" : "rgba(13,59,34,0.06)",
+                color: licensingEnabled ? "#8A6A10" : "#0D3B22",
+              }}
+            >
+              {licensingEnabled
+                ? "Licensing gate is ACTIVE — learners without a valid license will be redirected to the payment page."
+                : "Licensing gate is DISABLED — all learners can access training content without purchasing a license."}
+            </div>
+
+            {settingsSaved && (
+              <p className="mt-3 text-xs text-green-700 font-medium">Settings saved successfully.</p>
+            )}
           </div>
         </motion.div>
       )}

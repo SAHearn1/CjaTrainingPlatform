@@ -460,7 +460,7 @@ function AuthModal({
     if (user && !profile?.role) setStep("role");
     if (user && profile?.role) {
       onClose();
-      navigate("/dashboard");
+      navigate("/modules");
     }
   }, [user, profile, navigate, onClose]);
 
@@ -513,7 +513,7 @@ function AuthModal({
     setError(null);
     try {
       await updateProfile({ role: selectedRole, name: name || profile?.name || "Learner" });
-      navigate("/dashboard");
+      navigate("/modules");
       onClose();
     } catch (e: any) {
       setError(e.message || "Failed to save role");
@@ -808,7 +808,7 @@ export function Landing() {
   // Redirect if already authenticated with a role
   useEffect(() => {
     if (!authLoading && user && profile?.role) {
-      navigate("/dashboard");
+      navigate("/modules");
     }
   }, [authLoading, user, profile, navigate]);
 
