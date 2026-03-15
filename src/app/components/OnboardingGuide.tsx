@@ -27,6 +27,7 @@ import { PhaseIcon } from "./PhaseIcon";
 import { useAuth } from "./AuthContext";
 import { rootyChat } from "./api";
 import { ROLE_LABELS } from "./data";
+import { ROLE_MODULE_RECS, DEFAULT_MODULE_REC, type RoleModuleRec } from "./data";
 
 interface OnboardingStep {
   id: string;
@@ -142,27 +143,6 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
 ];
 
 const STORAGE_KEY = "rootwork_onboarding_complete";
-
-interface RoleModuleRec {
-  id: number;
-  title: string;
-  reason: string;
-}
-
-const ROLE_MODULE_RECS: Record<string, RoleModuleRec> = {
-  law_enforcement: { id: 2, title: "Communication & Interviewing", reason: "Trauma-informed interview techniques are foundational for field investigations." },
-  cpi: { id: 1, title: "Trauma-Informed Foundations", reason: "Start here to ground your investigative practice in the neuroscience of trauma." },
-  prosecutor: { id: 3, title: "Disability Law & Rights", reason: "Legal evidentiary standards and accommodation requirements affect every prosecution." },
-  judge: { id: 3, title: "Disability Law & Rights", reason: "Understanding accommodation law and trauma-informed testimony standards is essential." },
-  medical: { id: 4, title: "Forensic Evidence", reason: "Medical documentation and forensic injury interpretation are your core contribution to MDTs." },
-  school: { id: 7, title: "Mandated Reporter Essentials", reason: "Statutory reporting duties, timelines, and immunity protections — start here." },
-  advocate: { id: 6, title: "Preventing Secondary Trauma", reason: "Protecting your own wellbeing is the prerequisite for sustained effective advocacy." },
-  forensic: { id: 2, title: "Communication & Interviewing", reason: "Evidence-based interviewing protocols and developmental communication are your specialty." },
-  mandated_reporter: { id: 7, title: "Mandated Reporter Essentials", reason: "Statutory reporting duties, timelines, and immunity protections are your starting point." },
-  instructor: { id: 1, title: "Trauma-Informed Foundations", reason: "Master the full framework before facilitating it for others." },
-};
-
-const DEFAULT_MODULE_REC: RoleModuleRec = { id: 1, title: "Trauma-Informed Foundations", reason: "Begin with the core framework that underpins every discipline in this platform." };
 
 export function OnboardingGuide() {
   const navigate = useNavigate();
