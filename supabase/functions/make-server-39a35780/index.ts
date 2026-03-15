@@ -548,6 +548,258 @@ app.get("/make-server-39a35780/certificates/:certId", async (c) => {
   }
 });
 
+// GET /certificates/:certId/pdf — server-side PDF generation (#135)
+// Returns a signed PDF binary. Authentication required (only the cert owner or admin).
+// The PDF embeds an HMAC-SHA256 integrity fingerprint in metadata and footer for
+// offline verification, replacing the browser print/window.print() approach.
+app.get("/make-server-39a35780/certificates/:certId/pdf", async (c) => {
+  const certId = c.req.param("certId");
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized" }, 401);
+  try {
+    // Load public cert record (not encrypted — cert:* is public)
+    const certRef = await kv.get(`cert:${certId}`) as {
+      certId: string; userId: string; issuedAt: string;
+      learnerName: string; role: string;
+    } | null;
+    if (!certRef) return c.json({ error: "Certificate not found" }, 404);
+
+    // Authorization: only the cert owner or admin/superadmin may download
+    const requesterRole = await getUserRole(userId);
+    const ADMIN_ROLES_PDF = ["admin", "superadmin"];
+    if (certRef.userId !== userId && !ADMIN_ROLES_PDF.includes(requesterRole)) {
+      await auditLog("security:permission_denied", userId, "denied", `Attempted PDF download for cert ${certId} owned by another user`, c);
+      return c.json({ error: "Forbidden" }, 403);
+    }
+
+    // Compute HMAC-SHA256 integrity fingerprint (digital signature)
+    // Signs: certId | userId | issuedAt — uniquely binds cert to its owner and timestamp
+    const sigInput = `${certRef.certId}|${certRef.userId}|${certRef.issuedAt}`;
+    const sigKeyBytes = new TextEncoder().encode(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "");
+    const sigMsgBytes = new TextEncoder().encode(sigInput);
+    const sigCryptoKey = await crypto.subtle.importKey("raw", sigKeyBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const sigBytes = await crypto.subtle.sign("HMAC", sigCryptoKey, sigMsgBytes);
+    const signature = btoa(String.fromCharCode(...new Uint8Array(sigBytes))).substring(0, 32);
+
+    // Build PDF using pdf-lib
+    const { PDFDocument, rgb, StandardFonts } = await import("npm:pdf-lib");
+
+    const doc = await PDFDocument.create();
+    doc.setTitle(`RootWork Training Certificate — ${certRef.certId}`);
+    doc.setAuthor("GALS × RWFW / RootWork Training Platform");
+    doc.setSubject(`Completion certificate for ${certRef.learnerName}`);
+    doc.setKeywords([`certId:${certRef.certId}`, `sig:${signature}`]);
+    doc.setCreator("RootWork Training Platform (CJIS-compliant)");
+    doc.setCreationDate(new Date(certRef.issuedAt));
+
+    // A4 landscape: 841.89 × 595.28 pt
+    const page = doc.addPage([841.89, 595.28]);
+    const { width, height } = page.getSize();
+
+    const helveticaBold = await doc.embedFont(StandardFonts.HelveticaBold);
+    const helvetica = await doc.embedFont(StandardFonts.Helvetica);
+    const courier = await doc.embedFont(StandardFonts.Courier);
+
+    // Brand colors (normalized 0–1)
+    const darkGreen = rgb(0.051, 0.231, 0.133);   // #0D3B22
+    const gold = rgb(0.788, 0.659, 0.298);          // #C9A84C
+    const lightGold = rgb(0.98, 0.95, 0.88);        // near-white warm
+    const white = rgb(1, 1, 1);
+    const nearBlack = rgb(0.12, 0.12, 0.12);
+    const muted = rgb(0.45, 0.45, 0.45);
+
+    // Background
+    page.drawRectangle({ x: 0, y: 0, width, height, color: white });
+
+    // Dark green header band (top 90pt)
+    page.drawRectangle({ x: 0, y: height - 90, width, height: 90, color: darkGreen });
+
+    // Gold accent stripe below header
+    page.drawRectangle({ x: 0, y: height - 94, width, height: 4, color: gold });
+
+    // Header text: "RootWork Training Platform"
+    const headerTitle = "ROOTWORK TRAINING PLATFORM";
+    const headerTitleWidth = helveticaBold.widthOfTextAtSize(headerTitle, 18);
+    page.drawText(headerTitle, {
+      x: (width - headerTitleWidth) / 2,
+      y: height - 46,
+      size: 18,
+      font: helveticaBold,
+      color: white,
+    });
+
+    // Sub-header: "GALS × RWFW  ·  Criminal Justice Investigation Training"
+    const subHeader = "GALS × RWFW  ·  Criminal Justice Investigation Training";
+    const subHeaderWidth = helvetica.widthOfTextAtSize(subHeader, 10);
+    page.drawText(subHeader, {
+      x: (width - subHeaderWidth) / 2,
+      y: height - 62,
+      size: 10,
+      font: helvetica,
+      color: gold,
+    });
+
+    // Gold border frame (inset from edges)
+    const frameInset = 20;
+    const frameTop = height - 100;
+    const frameBottom = 60;
+    page.drawRectangle({
+      x: frameInset, y: frameBottom,
+      width: width - frameInset * 2,
+      height: frameTop - frameBottom,
+      borderColor: gold,
+      borderWidth: 1.5,
+    });
+
+    // "CERTIFICATE OF COMPLETION" title
+    const certTitle = "CERTIFICATE OF COMPLETION";
+    const certTitleWidth = helveticaBold.widthOfTextAtSize(certTitle, 24);
+    page.drawText(certTitle, {
+      x: (width - certTitleWidth) / 2,
+      y: height - 150,
+      size: 24,
+      font: helveticaBold,
+      color: darkGreen,
+    });
+
+    // Gold divider line under title
+    page.drawLine({
+      start: { x: width / 2 - 120, y: height - 163 },
+      end: { x: width / 2 + 120, y: height - 163 },
+      thickness: 1,
+      color: gold,
+    });
+
+    // "This certifies that"
+    const thisText = "This certifies that";
+    const thisWidth = helvetica.widthOfTextAtSize(thisText, 12);
+    page.drawText(thisText, {
+      x: (width - thisWidth) / 2,
+      y: height - 195,
+      size: 12,
+      font: helvetica,
+      color: muted,
+    });
+
+    // Learner name (large)
+    const nameText = certRef.learnerName || "Learner";
+    const nameSize = Math.min(36, 36 * (20 / Math.max(20, nameText.length)));
+    const nameWidth = helveticaBold.widthOfTextAtSize(nameText, nameSize);
+    page.drawText(nameText, {
+      x: (width - nameWidth) / 2,
+      y: height - 240,
+      size: nameSize,
+      font: helveticaBold,
+      color: nearBlack,
+    });
+
+    // Role label (lookup map)
+    const ROLE_LABELS_PDF: Record<string, string> = {
+      law_enforcement: "Law Enforcement Officer", cpi: "Child Protective Investigator",
+      prosecutor: "Prosecutor", judge: "Judge", medical: "Medical Professional",
+      school: "School Personnel", advocate: "Victim Advocate",
+      forensic: "Forensic Interviewer", mandated_reporter: "Mandated Reporter",
+      supervisor: "Supervisor", instructor: "Instructor",
+    };
+    const roleLabel = ROLE_LABELS_PDF[certRef.role] || certRef.role;
+    const roleLine = `${roleLabel}`;
+    const roleWidth = helvetica.widthOfTextAtSize(roleLine, 13);
+    page.drawText(roleLine, {
+      x: (width - roleWidth) / 2,
+      y: height - 265,
+      size: 13,
+      font: helvetica,
+      color: muted,
+    });
+
+    // "has successfully completed the"
+    const completedText = "has successfully completed the RootWork Trauma-Informed Investigation Training";
+    const completedWidth = helvetica.widthOfTextAtSize(completedText, 11);
+    page.drawText(completedText, {
+      x: (width - completedWidth) / 2,
+      y: height - 295,
+      size: 11,
+      font: helvetica,
+      color: nearBlack,
+    });
+
+    // Issued date + cert ID row
+    const issuedDate = new Date(certRef.issuedAt).toLocaleDateString("en-US", {
+      year: "numeric", month: "long", day: "numeric",
+    });
+    const dateText = `Issued: ${issuedDate}`;
+    const dateWidth = helvetica.widthOfTextAtSize(dateText, 10);
+    page.drawText(dateText, {
+      x: (width - dateWidth) / 2,
+      y: height - 330,
+      size: 10,
+      font: helvetica,
+      color: muted,
+    });
+
+    // Certificate ID badge (gold background)
+    const badgeText = `Certificate ID: ${certRef.certId}`;
+    const badgeWidth = helveticaBold.widthOfTextAtSize(badgeText, 11);
+    const badgeX = (width - badgeWidth - 20) / 2;
+    page.drawRectangle({ x: badgeX, y: height - 368, width: badgeWidth + 20, height: 22, color: lightGold });
+    page.drawText(badgeText, {
+      x: badgeX + 10,
+      y: height - 360,
+      size: 11,
+      font: helveticaBold,
+      color: darkGreen,
+    });
+
+    // Footer: signature fingerprint + verification URL
+    const sigLine = `Integrity: ${signature}`;
+    const sigWidth = courier.widthOfTextAtSize(sigLine, 7);
+    page.drawText(sigLine, {
+      x: (width - sigWidth) / 2,
+      y: 42,
+      size: 7,
+      font: courier,
+      color: muted,
+    });
+
+    const verifyUrl = `Verify at: https://rootwork-training-platform.vercel.app/verify/${certRef.certId}`;
+    const verifyWidth = helvetica.widthOfTextAtSize(verifyUrl, 8);
+    page.drawText(verifyUrl, {
+      x: (width - verifyWidth) / 2,
+      y: 28,
+      size: 8,
+      font: helvetica,
+      color: muted,
+    });
+
+    // CJIS compliance note
+    const cjisNote = "CJIS-compliant platform — GALS × RWFW";
+    const cjisWidth = helvetica.widthOfTextAtSize(cjisNote, 7);
+    page.drawText(cjisNote, {
+      x: (width - cjisWidth) / 2,
+      y: 16,
+      size: 7,
+      font: helvetica,
+      color: muted,
+    });
+
+    const pdfBytes = await doc.save();
+
+    await auditLog("certificate_pdf_download", userId, "success", `certId=${certId}`, c);
+
+    return new Response(pdfBytes, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="RootWork-Certificate-${certRef.certId}.pdf"`,
+        "Content-Length": pdfBytes.byteLength.toString(),
+      },
+    });
+  } catch (e) {
+    console.error("Certificate PDF error:", e);
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
 // ---------- Stripe / Licensing ----------
 
 const LICENSE_PLANS = [

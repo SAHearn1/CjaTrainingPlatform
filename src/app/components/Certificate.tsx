@@ -11,8 +11,8 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useAuth } from "./AuthContext";
-import { useState, useEffect, useRef } from "react";
-import { generateCertificate } from "./api";
+import { useState, useEffect } from "react";
+import { generateCertificate, downloadCertificatePDF } from "./api";
 
 export function Certificate() {
   const { profile, progress: userProgress, accessToken } = useAuth();
@@ -24,25 +24,23 @@ export function Certificate() {
 
   const [certId, setCertId] = useState<string | null>(null);
   const [certIssuedAt, setCertIssuedAt] = useState<string | null>(null);
-  const certRef = useRef<HTMLDivElement>(null);
-
-  function handleDownloadPDF() {
-    const styleId = "rootwork-print-style";
-    let style = document.getElementById(styleId) as HTMLStyleElement | null;
-    if (!style) {
-      style = document.createElement("style");
-      style.id = styleId;
-      document.head.appendChild(style);
+  const [pdfDownloading, setPdfDownloading] = useState(false);
+  async function handleDownloadPDF() {
+    if (!certId || !accessToken || pdfDownloading) return;
+    setPdfDownloading(true);
+    try {
+      const blob = await downloadCertificatePDF(accessToken, certId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `RootWork-Certificate-${certId}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("PDF download failed:", err);
+    } finally {
+      setPdfDownloading(false);
     }
-    style.textContent = `
-      @media print {
-        body * { visibility: hidden !important; }
-        #certificate-printable, #certificate-printable * { visibility: visible !important; }
-        #certificate-printable { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: white; z-index: 9999; }
-        @page { size: landscape; margin: 1cm; }
-      }
-    `;
-    window.print();
   }
 
   useEffect(() => {
@@ -129,7 +127,7 @@ export function Certificate() {
           <div id="certificate-printable" className="bg-card rounded-2xl overflow-hidden mb-6" style={{ border: "2px solid rgba(201,168,76,0.3)" }}>
             <div className="p-8 sm:p-12 text-center" style={{ background: "rgba(8,42,25,0.03)" }}>
               <div className="max-w-lg mx-auto">
-                <div id="certificate-printable" ref={certRef} className="rounded-xl p-8 bg-white" style={{ border: "2px solid rgba(201,168,76,0.3)" }}>
+                <div id="certificate-printable" className="rounded-xl p-8 bg-white" style={{ border: "2px solid rgba(201,168,76,0.3)" }}>
                   <div className="flex justify-center mb-4">
                     <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: "rgba(201,168,76,0.12)" }}>
                       <Award className="w-8 h-8" style={{ color: "#C9A84C" }} />
@@ -183,8 +181,13 @@ export function Certificate() {
             </div>
 
             <div className="p-4 flex justify-center gap-3 border-t border-border print:hidden">
-              <button onClick={handleDownloadPDF} className="px-5 py-2.5 bg-primary text-primary-foreground rounded-full text-sm hover:opacity-90 flex items-center gap-2">
-                <Download className="w-4 h-4" /> Download PDF
+              <button
+                onClick={handleDownloadPDF}
+                disabled={pdfDownloading || !certId}
+                className="px-5 py-2.5 bg-primary text-primary-foreground rounded-full text-sm hover:opacity-90 flex items-center gap-2 disabled:opacity-50"
+              >
+                <Download className="w-4 h-4" />
+                {pdfDownloading ? "Generating…" : "Download PDF"}
               </button>
               {certId && (
                 <a

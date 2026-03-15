@@ -206,3 +206,23 @@ export async function rootyChat(
 export async function getSupervisorTeamProgress(token: string) {
   return request("/supervisor/team-progress", {}, token);
 }
+
+// ---------- Certificate PDF ----------
+
+/**
+ * Downloads the server-generated PDF for a certificate (#135).
+ * Returns a Blob for client-side download via createObjectURL.
+ */
+export async function downloadCertificatePDF(token: string, certId: string): Promise<Blob> {
+  const res = await fetch(`${BASE}/certificates/${certId}/pdf`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      apikey: publicAnonKey,
+    },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "PDF generation failed" }));
+    throw new Error(err.error || `Request failed: ${res.status}`);
+  }
+  return res.blob();
+}
