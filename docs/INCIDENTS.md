@@ -8,6 +8,59 @@ _None_
 
 ## Resolved Incidents
 
+### 2026-03-15 — Enterprise production gap analysis + GitHub issue batch creation (#104–#136)
+
+**What happened:** A full deterministic gap analysis of the repository was conducted against production-critical flows for all 9 role types. Analysis used direct code evidence (no speculation): edge function read in sections, route guards, encryption paths, KV write paths, CSP, CI config, test coverage, and lint state all inspected against documented behavior.
+
+**Gaps confirmed (33 total across 3 sprints):**
+
+*Sprint 1 — Critical / Security (issues #104–#119):*
+- #104 GAP-01: Certificate enrichment regression — `cert:{certId}` KV record missing `learnerName`/`role` despite INCIDENTS.md claiming fix
+- #105 GAP-02: License data written unencrypted via `kv.set` in `/licensing/confirm` and `/licensing/webhook`
+- #106 GAP-03: CORS wildcard origin reflection — all origins accepted
+- #107 GAP-04: Audit log entry IDs use `Math.random()` — not cryptographically secure (co-issue with #119)
+- #108 GAP-05: Supabase anon key + project ID committed to `utils/supabase/info.tsx`
+- #109 GAP-06: `/rooty/chat` endpoint completely unauthenticated — no `getUserId()` call
+- #110 GAP-07: `/admin/audit` reads only lightweight `audit_idx:` index, not full encrypted audit records
+- #111 GAP-08: `AuditLogEntry.integrity` field declared in TypeScript but never computed or stored
+- #112 GAP-09: CSP `connect-src` in `vercel.json` missing PostHog and Sentry endpoints — both blocked
+- #113 GAP-10: KV client factory (`kv_store.tsx`) creates new Supabase client per operation — no connection reuse
+- #114 GAP-11: Source maps disabled (`sourcemap: false`) — Sentry source-mapped stack traces unavailable
+- #115 GAP-12: `POST /signup` forwards raw Supabase error to client — internal error details leaked
+- #116 GAP-13: `requireLicense()` reads license KV via raw `kv.get` (not `encryptedGet`) — mismatch with write path
+- #117 `pnpm.overrides` field present but project uses npm — package manager confusion
+- #118 GAP-15: Licensing nav item visible to all learners despite `RequireSuperAdmin` route guard
+- #119 GAP-16 (co): `Math.random()` in audit IDs — crypto.randomUUID() replacement
+
+*Sprint 2 — Quality Gates (issues #120–#124):*
+- #120 Lint Hygiene Batch 1: `jsx-a11y` violations in 9 files
+- #121 Lint Hygiene Batch 2: `react-hooks/purity` and `set-state-in-effect` in 6 files
+- #122 Lint Hygiene Batch 3: general correctness + CI `continue-on-error` removal
+- #123 GAP-14a: RBAC integration tests for edge function (zero server-side test coverage)
+- #124 GAP-14b: Component tests for `LicenseGate`, `RequireSuperAdmin`, `RequireRole` + coverage threshold
+
+*Sprint 3 — Architecture Hardening (issues #125–#130):*
+- #125 GAP-18: AES-256-GCM key rotation path — PBKDF2 tied to service role key, no rotation mechanism
+- #126 GAP-16: Document server-side module access decision — `MODULE_ACCESS` is UI-only
+- #127 GAP-17: Implement supervisor tier API endpoints (`GET /supervisor/team-progress`)
+- #128 GAP-21: Rate limiter fail-open behavior + extend to `/rooty/chat`, `/certificates/generate`
+- #129 GAP-23: Audit `figma:asset/` imports — all resolve to 1×1 transparent PNG in production
+- #130 GAP-24: Privacy Policy, ToS, Security, Accessibility pages — all footer links `href="#"`
+
+*UX / Security Improvements (issues #131–#136):*
+- #131 Role selection step missing from signup flow
+- #132 Post-login onboarding modal for new learners (role-specific module path)
+- #133 Module access indicator for role-restricted modules on modules list
+- #134 Save-draft before CJIS session timeout fires
+- #135 Server-side PDF certificate generation with digital signature (v1.1)
+- #136 In-app authenticated password change flow (CJIS 5.6.2.1)
+
+**Key regression confirmed:** The certificate enrichment fix documented in the 2026-03-08 incident (cert KV record missing `learnerName`/`role`) was never actually applied to the code — `POST /certificates/generate` in `index.ts` still writes only `{ certId, userId, issuedAt }`. Issue #104 re-opens this fix.
+
+**Issue:** Gap analysis session 2026-03-15
+
+---
+
 ### 2026-03-15 — Licensing gate blocking all learners from training content
 
 **What happened:** After logging in, all learner-role users were immediately redirected to `/licensing` because `LicenseGate` enforced a license check unconditionally. No learner had a license (Stripe not yet live), so the platform was inaccessible to all non-admin users. Additionally, the `/licensing` route was accessible to any authenticated user, exposing pricing/payment UI prematurely.
