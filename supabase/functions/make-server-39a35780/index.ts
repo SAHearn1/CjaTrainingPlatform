@@ -1081,6 +1081,8 @@ IMPORTANT RULES:
 - Do NOT make up information about features that don't exist on the platform.`;
 
 app.post("/make-server-39a35780/rooty/chat", async (c) => {
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized" }, 401);
   try {
     const { messages } = await c.req.json();
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
