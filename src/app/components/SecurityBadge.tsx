@@ -278,8 +278,8 @@ export function SessionMonitor() {
   const navigate = useNavigate();
   const [showWarning, setShowWarning] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
-  const lastActivityRef = useRef(Date.now());
-  const sessionStartRef = useRef(Date.now());
+  const lastActivityRef = useRef<number>(0);
+  const sessionStartRef = useRef<number>(0);
   const warningTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastThrottleRef = useRef(0);
 
@@ -305,7 +305,9 @@ export function SessionMonitor() {
   useEffect(() => {
     if (!user || !accessToken) return;
 
-    sessionStartRef.current = Date.now();
+    const now = Date.now();
+    sessionStartRef.current = now;
+    lastActivityRef.current = now;
 
     // Listen for activity events
     const events = CJIS_SESSION_CONFIG.ACTIVITY_EVENTS;
@@ -576,13 +578,13 @@ export function LegalFooter({ variant = "full" }: { variant?: "full" | "compact"
             Root &middot; Regulate &middot; Reflect &middot; Restore &middot; Reconnect
           </p>
           <div className="flex items-center gap-4 text-[10px]" style={{ color: "rgba(242,244,202,0.65)" }}>
-            <a href="#" className="hover:text-gold-leaf transition-colors">Privacy Policy</a>
+            <a href="/privacy" className="hover:text-gold-leaf transition-colors">Privacy Policy</a>
             <span>&middot;</span>
-            <a href="#" className="hover:text-gold-leaf transition-colors">Terms of Service</a>
+            <a href="/terms" className="hover:text-gold-leaf transition-colors">Terms of Service</a>
             <span>&middot;</span>
-            <a href="#" className="hover:text-gold-leaf transition-colors">Security</a>
+            <a href="/security" className="hover:text-gold-leaf transition-colors">Security</a>
             <span>&middot;</span>
-            <a href="#" className="hover:text-gold-leaf transition-colors">Accessibility</a>
+            <a href="/accessibility" className="hover:text-gold-leaf transition-colors">Accessibility</a>
           </div>
         </div>
 

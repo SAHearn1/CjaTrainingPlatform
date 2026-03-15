@@ -552,6 +552,12 @@ function CharacterDisplay({
 /* ---------- Ambient Particles ---------- */
 
 function AmbientParticles({ mood, isPlaying }: { mood: string; isPlaying: boolean }) {
+  const [particleInitX] = useState<number[]>(() => Array.from({ length: 12 }, () => Math.random() * 100));
+  const [particleInitY] = useState<number[]>(() => Array.from({ length: 12 }, () => Math.random() * 100));
+  const [particleAnimY1] = useState<number[]>(() => Array.from({ length: 12 }, () => 50 + Math.random() * 50));
+  const [particleAnimY2] = useState<number[]>(() => Array.from({ length: 12 }, () => Math.random() * 40));
+  const [particleDuration] = useState<number[]>(() => Array.from({ length: 12 }, () => 4 + Math.random() * 4));
+
   if (!isPlaying) return null;
 
   const particleColor =
@@ -572,16 +578,16 @@ function AmbientParticles({ mood, isPlaying }: { mood: string; isPlaying: boolea
           key={i}
           className={`absolute w-1 h-1 rounded-full ${particleColor}`}
           initial={{
-            x: `${Math.random() * 100}%`,
-            y: `${Math.random() * 100}%`,
+            x: `${particleInitX[i]}%`,
+            y: `${particleInitY[i]}%`,
             opacity: 0,
           }}
           animate={{
-            y: [`${50 + Math.random() * 50}%`, `${Math.random() * 40}%`],
+            y: [`${particleAnimY1[i]}%`, `${particleAnimY2[i]}%`],
             opacity: [0, 0.6, 0],
           }}
           transition={{
-            duration: 4 + Math.random() * 4,
+            duration: particleDuration[i],
             repeat: Infinity,
             delay: i * 0.5,
             ease: "easeInOut",

@@ -31,6 +31,8 @@ export function TTSControls({ text, label = "Listen", compact = false }: TTSCont
     setCurrentRate,
   } = useTTS();
   const [showSettings, setShowSettings] = useState(false);
+  const [waveHeights] = useState<number[]>(() => Array.from({ length: 20 }, () => Math.random() * 16 + 4));
+  const [waveDurations] = useState<number[]>(() => Array.from({ length: 20 }, () => 0.5 + Math.random() * 0.5));
 
   const rateOptions = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
@@ -102,10 +104,10 @@ export function TTSControls({ text, label = "Listen", compact = false }: TTSCont
                 key={i}
                 className="w-1 bg-primary/40 rounded-full"
                 animate={{
-                  height: [4, Math.random() * 16 + 4, 4],
+                  height: [4, waveHeights[i], 4],
                 }}
                 transition={{
-                  duration: 0.5 + Math.random() * 0.5,
+                  duration: waveDurations[i],
                   repeat: Infinity,
                   repeatType: "reverse",
                   delay: i * 0.05,
@@ -158,8 +160,9 @@ export function TTSControls({ text, label = "Listen", compact = false }: TTSCont
           >
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">Voice</label>
+                <label htmlFor="tts-voice-select" className="text-xs text-muted-foreground block mb-1">Voice</label>
                 <select
+                  id="tts-voice-select"
                   value={selectedVoice?.name || ""}
                   onChange={(e) => {
                     const v = voices.find((voice) => voice.name === e.target.value);
@@ -177,10 +180,11 @@ export function TTSControls({ text, label = "Listen", compact = false }: TTSCont
                 </select>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">
+                <label htmlFor="tts-speed-range" className="text-xs text-muted-foreground block mb-1">
                   Speed: {currentRate}x
                 </label>
                 <input
+                  id="tts-speed-range"
                   type="range"
                   min={0.5}
                   max={2}

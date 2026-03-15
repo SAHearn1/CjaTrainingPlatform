@@ -615,8 +615,9 @@ function AuthModal({
                   ) : (
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm mb-1.5">Email Address</label>
+                        <label htmlFor="auth-reset-email" className="block text-sm mb-1.5">Email Address</label>
                         <input
+                          id="auth-reset-email"
                           type="email"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
@@ -657,8 +658,9 @@ function AuthModal({
                   <div className="space-y-4">
                     {mode === "signup" && (
                       <div>
-                        <label className="block text-sm mb-1.5">Full Name</label>
+                        <label htmlFor="auth-full-name" className="block text-sm mb-1.5">Full Name</label>
                         <input
+                          id="auth-full-name"
                           type="text"
                           value={name}
                           onChange={(e) => setName(e.target.value)}
@@ -668,8 +670,9 @@ function AuthModal({
                       </div>
                     )}
                     <div>
-                      <label className="block text-sm mb-1.5">Email Address</label>
+                      <label htmlFor="auth-email" className="block text-sm mb-1.5">Email Address</label>
                       <input
+                        id="auth-email"
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
@@ -680,7 +683,7 @@ function AuthModal({
                     </div>
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
-                        <label className="block text-sm">Password</label>
+                        <label htmlFor="auth-password" className="block text-sm">Password</label>
                         {mode === "signin" && (
                           <button
                             type="button"
@@ -692,6 +695,7 @@ function AuthModal({
                         )}
                       </div>
                       <input
+                        id="auth-password"
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}

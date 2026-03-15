@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useAuth } from "./AuthContext";
 import * as api from "./api";
@@ -274,12 +274,14 @@ export function Licensing() {
         className="max-w-md mx-auto mb-10"
       >
         <label
+          htmlFor="licensing-org-name"
           className="block text-sm font-medium mb-2"
           style={{ color: "var(--foreground)" }}
         >
           Organization / Agency Name
         </label>
         <input
+          id="licensing-org-name"
           type="text"
           value={orgName}
           onChange={(e) => setOrgName(e.target.value)}
@@ -380,6 +382,7 @@ export function Licensing() {
                   className="mb-5"
                 >
                   <label
+                    htmlFor="licensing-seat-count"
                     className="block text-xs font-medium mb-1.5"
                     style={{ color: "var(--foreground)" }}
                   >
@@ -387,6 +390,7 @@ export function Licensing() {
                   </label>
                   <div className="flex items-center gap-3">
                     <input
+                      id="licensing-seat-count"
                       type="range"
                       min={1}
                       max={100}
@@ -597,6 +601,7 @@ function LicenseActive({
   license: License;
   formatCents: (c: number) => string;
 }) {
+  const [now] = useState<number>(() => Date.now());
   const purchasedDate = new Date(license.purchasedAt).toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
@@ -609,7 +614,7 @@ function LicenseActive({
   });
   const daysRemaining = Math.max(
     0,
-    Math.ceil((new Date(license.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    Math.ceil((new Date(license.expiresAt).getTime() - now) / (1000 * 60 * 60 * 24))
   );
 
   return (

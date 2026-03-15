@@ -23,20 +23,19 @@ export function LicensingSuccess() {
 
   useEffect(() => {
     if (!sessionId || !accessToken) return;
-    confirmPayment();
-  }, [sessionId, accessToken]);
-
-  async function confirmPayment() {
-    try {
-      const res = await api.confirmLicense(accessToken!, sessionId!);
-      setLicense(res.license);
-      setStatus("success");
-    } catch (e: any) {
-      console.error("License confirmation failed:", e);
-      setError(e.message);
-      setStatus("error");
+    let isMounted = true;
+    async function runConfirm() {
+      try {
+        const res = await api.confirmLicense(accessToken!, sessionId!);
+        if (isMounted) { setLicense(res.license); setStatus("success"); }
+      } catch (e: any) {
+        console.error("License confirmation failed:", e);
+        if (isMounted) { setError(e.message); setStatus("error"); }
+      }
     }
-  }
+    runConfirm();
+    return () => { isMounted = false; };
+  }, [sessionId, accessToken]);
 
   if (!sessionId) {
     return (

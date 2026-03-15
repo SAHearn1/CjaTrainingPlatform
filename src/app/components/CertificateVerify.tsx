@@ -10,17 +10,28 @@ export function CertificateVerify() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!certId) { setError("No certificate ID provided"); setLoading(false); return; }
-    getCertificate(certId)
-      .then((data) => {
+    let isMounted = true;
+    async function load() {
+      if (!certId) {
+        if (isMounted) { setError("No certificate ID provided"); setLoading(false); }
+        return;
+      }
+      try {
+        const data = await getCertificate(certId);
+        if (!isMounted) return;
         if (data?.certificate) {
           setCert(data.certificate);
         } else {
           setError("Certificate not found");
         }
-      })
-      .catch((e) => setError(e.message || "Failed to look up certificate"))
-      .finally(() => setLoading(false));
+      } catch (e: any) {
+        if (isMounted) setError(e.message || "Failed to look up certificate");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    load();
+    return () => { isMounted = false; };
   }, [certId]);
 
   const formattedDate = cert?.issuedAt

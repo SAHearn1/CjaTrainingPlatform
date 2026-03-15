@@ -71,6 +71,7 @@ function VideoPlayer({ url, title, className }: { url: string; title: string; cl
     <div className={wrapperClass}>
       <video className="w-full rounded-xl" controls preload="metadata" title={title}>
         <source src={url} />
+        <track kind="captions" srcLang="en" src="" default />
         <p className="text-sm text-muted-foreground p-4">
           Your browser does not support HTML5 video.{" "}
           <a href={url} className="underline">Download the video</a>.

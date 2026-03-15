@@ -190,7 +190,14 @@ export function OnboardingGuide() {
         className="fixed inset-0 z-[100] flex items-center justify-center p-4"
       >
         {/* Backdrop */}
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleSkip} />
+        <div
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          role="button"
+          tabIndex={0}
+          aria-label="Skip onboarding guide"
+          onClick={handleSkip}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleSkip(); }}
+        />
 
         {/* Modal */}
         <motion.div
@@ -318,6 +325,9 @@ export function OnboardingGuide() {
 /* ---------- Step Visuals ---------- */
 
 function StepVisual({ type }: { type: string }) {
+  const [waveHeights] = useState<number[]>(() => Array.from({ length: 16 }, () => Math.random() * 14 + 3));
+  const [waveDurations] = useState<number[]>(() => Array.from({ length: 16 }, () => 0.6 + Math.random() * 0.4));
+
   if (type === "welcome") {
     const phases = ["Root", "Regulate", "Reflect", "Restore", "Reconnect"];
     return (
@@ -460,8 +470,8 @@ function StepVisual({ type }: { type: string }) {
                 <motion.div
                   key={i}
                   className="w-1 bg-primary/40 rounded-full"
-                  animate={{ height: [3, Math.random() * 14 + 3, 3] }}
-                  transition={{ duration: 0.6 + Math.random() * 0.4, repeat: Infinity, repeatType: "reverse", delay: i * 0.05 }}
+                  animate={{ height: [3, waveHeights[i], 3] }}
+                  transition={{ duration: waveDurations[i], repeat: Infinity, repeatType: "reverse", delay: i * 0.05 }}
                 />
               ))}
             </div>

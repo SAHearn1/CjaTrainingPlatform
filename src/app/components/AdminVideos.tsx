@@ -233,10 +233,15 @@ export function AdminVideos() {
       {previewId && (
         <div
           className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+          role="button"
+          tabIndex={0}
+          aria-label="Close video preview"
           onClick={() => setPreviewId(null)}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setPreviewId(null); }}
         >
           <div
             className="bg-card rounded-xl w-full max-w-3xl shadow-2xl overflow-hidden"
+            role="presentation"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-4 py-3 border-b">

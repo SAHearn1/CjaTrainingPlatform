@@ -110,9 +110,10 @@ export function ResetPassword() {
               </div>
             )}
             <div>
-              <label className="block text-sm mb-1.5">New Password</label>
+              <label htmlFor="reset-new-password" className="block text-sm mb-1.5">New Password</label>
               <div className="relative">
                 <input
+                  id="reset-new-password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -131,9 +132,10 @@ export function ResetPassword() {
               <PasswordStrengthMeter password={password} />
             </div>
             <div>
-              <label className="block text-sm mb-1.5">Confirm Password</label>
+              <label htmlFor="reset-confirm-password" className="block text-sm mb-1.5">Confirm Password</label>
               <div className="relative">
                 <input
+                  id="reset-confirm-password"
                   type={showConfirm ? "text" : "password"}
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
