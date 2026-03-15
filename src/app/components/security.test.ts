@@ -92,8 +92,10 @@ describe('canAccessRoute', () => {
     expect(canAccessRoute('admin', '/admin/users')).toBe(true);
   });
 
-  it('allows public routes by default', () => {
-    expect(canAccessRoute('cpi', '/licensing')).toBe(true);
+  it('denies learners access to licensing route (RequireSuperAdmin guarded)', () => {
+    expect(canAccessRoute('cpi', '/licensing')).toBe(false);
+    expect(canAccessRoute('admin', '/licensing')).toBe(false);
+    expect(canAccessRoute('superadmin', '/licensing')).toBe(true);
   });
 });
 

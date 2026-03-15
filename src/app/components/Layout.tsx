@@ -31,7 +31,7 @@ const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: "modules:read" as const },
   { to: "/modules", label: "Training Modules", icon: BookOpen, permission: "modules:read" as const },
   { to: "/certificates", label: "Certificates", icon: Award, permission: "certificates:generate" as const },
-  { to: "/licensing", label: "Licensing", icon: CreditCard, permission: "modules:read" as const },
+  { to: "/licensing", label: "Licensing", icon: CreditCard, permission: "security:manage" as const },
   { to: "/instructor", label: "Instructor View", icon: Users, permission: "reports:view" as const },
   { to: "/admin", label: "Admin Analytics", icon: BarChart3, permission: "admin:dashboard" as const },
   { to: "/admin/users", label: "User Management", icon: Users, permission: "admin:users" as const },
