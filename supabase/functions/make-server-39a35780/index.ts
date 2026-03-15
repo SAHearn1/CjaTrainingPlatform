@@ -134,6 +134,11 @@ app.get("/make-server-39a35780/health", (c) => {
 
 // CJIS 5.10.1: KV-backed rate limiter — persists across Deno isolate restarts.
 // In-memory Maps reset on every cold start so they cannot enforce limits reliably.
+// Applied to: /signup (10/15min), /auth/change-password (5/15min),
+//             /certificates/generate (5/15min), /rooty/chat (20/15min).
+// Fail-open behavior: on KV error the request is allowed through. This preserves
+// service availability at the cost of temporary rate-limit bypass. Operators should
+// monitor KV health alerts if stricter enforcement is required (#128).
 async function checkRateLimit(ip: string, maxRequests = 10, windowMs = 15 * 60 * 1000): Promise<boolean> {
   const windowStart = Math.floor(Date.now() / windowMs);
   const key = `ratelimit:${ip}:${windowStart}`;
@@ -424,6 +429,11 @@ app.get("/make-server-39a35780/simulations", async (c) => {
 
 // POST /certificates/generate — idempotent: returns existing cert or creates a new one
 app.post("/make-server-39a35780/certificates/generate", async (c) => {
+  const ip = c.req.header("x-forwarded-for") || c.req.header("cf-connecting-ip") || "unknown";
+  // Rate-limit cert generation: 5 per 15-min window to prevent brute-force / spam (#128)
+  if (!(await checkRateLimit(ip, 5, 15 * 60 * 1000))) {
+    return c.json({ error: "Too many certificate requests. Please try again later." }, 429);
+  }
   const userId = await getUserId(c);
   if (!userId) return c.json({ error: "Unauthorized" }, 401);
   const certUserRole = await getUserRole(userId);
@@ -1166,6 +1176,11 @@ IMPORTANT RULES:
 - Do NOT make up information about features that don't exist on the platform.`;
 
 app.post("/make-server-39a35780/rooty/chat", async (c) => {
+  const ip = c.req.header("x-forwarded-for") || c.req.header("cf-connecting-ip") || "unknown";
+  // Rate-limit chat: 20 per 15-min window — Gemini calls are metered (#128)
+  if (!(await checkRateLimit(ip, 20, 15 * 60 * 1000))) {
+    return c.json({ error: "Too many chat requests. Please try again later." }, 429);
+  }
   const userId = await getUserId(c);
   if (!userId) return c.json({ error: "Unauthorized" }, 401);
   try {

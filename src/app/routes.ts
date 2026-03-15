@@ -6,6 +6,7 @@ import { RootWrapper } from "./components/RootWrapper";
 import { ResetPassword } from "./components/ResetPassword";
 import { CertificateVerify } from "./components/CertificateVerify";
 import { LicenseGate, RequireSuperAdmin } from "./components/SecurityBadge";
+import { PrivacyPolicy, TermsOfService, SecurityPage, AccessibilityStatement } from "./components/LegalPages";
 
 // Lazy-loaded route components for code splitting
 const Dashboard = lazy(() => import("./components/Dashboard").then(m => ({ default: m.Dashboard })));
@@ -41,6 +42,10 @@ export const router = createBrowserRouter([
         path: "verify/:certId",
         Component: CertificateVerify,
       },
+      { path: "privacy", Component: PrivacyPolicy },
+      { path: "terms", Component: TermsOfService },
+      { path: "security", Component: SecurityPage },
+      { path: "accessibility", Component: AccessibilityStatement },
       {
         Component: Layout,
         children: [
