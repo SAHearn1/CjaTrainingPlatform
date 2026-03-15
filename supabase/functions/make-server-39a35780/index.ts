@@ -126,6 +126,29 @@ async function getUserRole(userId: string): Promise<string> {
   return profile?.role || "learner";
 }
 
+// ── #126: Server-side module access enforcement ────────────────────────────
+// MODULE_ACCESS mirrors the UI-side constant in security.ts.
+// Design decision: module access is enforced at BOTH the UI layer (security.ts
+// canAccessModule) and the API layer here. UI gating provides UX; API gating is
+// the authoritative security boundary (defense in depth, CJIS 5.4 least-privilege).
+// All 12 roles (9 professional + supervisor/admin/superadmin) are enumerated.
+// Admin/superadmin bypass per RBAC policy.
+const SERVER_MODULE_ACCESS: Record<number, string[]> = {
+  1: ["law_enforcement", "cpi", "prosecutor", "judge", "medical", "school", "advocate", "forensic", "mandated_reporter", "supervisor", "admin", "superadmin"],
+  2: ["law_enforcement", "cpi", "prosecutor", "judge", "medical", "advocate", "forensic", "supervisor", "admin", "superadmin"],
+  3: ["law_enforcement", "cpi", "prosecutor", "judge", "medical", "school", "advocate", "forensic", "supervisor", "admin", "superadmin"],
+  4: ["law_enforcement", "cpi", "prosecutor", "forensic", "supervisor", "admin", "superadmin"],
+  5: ["law_enforcement", "cpi", "prosecutor", "judge", "medical", "advocate", "forensic", "supervisor", "admin", "superadmin"],
+  6: ["law_enforcement", "cpi", "prosecutor", "judge", "medical", "school", "advocate", "forensic", "mandated_reporter", "supervisor", "admin", "superadmin"],
+  7: ["school", "medical", "mandated_reporter", "advocate", "law_enforcement", "cpi", "prosecutor", "judge", "forensic", "supervisor", "admin", "superadmin"],
+};
+
+function canAccessModuleServer(role: string, moduleId: number): boolean {
+  const allowed = SERVER_MODULE_ACCESS[moduleId];
+  if (!allowed) return false;
+  return allowed.includes(role);
+}
+
 // ---------- Health ----------
 
 app.get("/make-server-39a35780/health", (c) => {
@@ -334,6 +357,11 @@ app.put("/make-server-39a35780/progress/:moduleId", async (c) => {
     return c.json({ error: "License required to save progress" }, 402);
   }
   const moduleId = c.req.param("moduleId");
+  // #126: Server-side module access gate (defense in depth — mirrors UI canAccessModule)
+  if (!canAccessModuleServer(userRole, Number(moduleId))) {
+    await auditLog("security:permission_denied", userId, "denied", `Module ${moduleId} access denied for role ${userRole}`, c);
+    return c.json({ error: "Forbidden: your role does not have access to this module" }, 403);
+  }
   try {
     const body = await c.req.json();
     const key = `user:${userId}:progress:${moduleId}`;
@@ -398,6 +426,11 @@ app.post("/make-server-39a35780/simulations", async (c) => {
   }
   try {
     const body = await c.req.json();
+    // #126: Server-side module access gate for simulation results
+    if (body.moduleId !== undefined && !canAccessModuleServer(simUserRole, Number(body.moduleId))) {
+      await auditLog("security:permission_denied", userId, "denied", `Simulation module ${body.moduleId} access denied for role ${simUserRole}`, c);
+      return c.json({ error: "Forbidden: your role does not have access to this module" }, 403);
+    }
     const ts = Date.now();
     const key = `user:${userId}:simulation:${body.moduleId}:${ts}`;
     const record = {
@@ -1083,6 +1116,82 @@ app.put("/make-server-39a35780/admin/users/:targetUserId/role", async (c) => {
     return c.json({ profile: updatedProfile });
   } catch (e) {
     console.error("Role change error:", e);
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
+// ---------- Supervisor: Team Progress ----------
+// #127: GET /supervisor/team-progress — read-only aggregated learner view.
+// v1 scoping: supervisor sees all learners in the platform (org-wide).
+// Per-supervisor team assignment is not yet in the data model; deferred to
+// when agency/team tables are added. Supervisors cannot modify any records.
+
+app.get("/make-server-39a35780/supervisor/team-progress", async (c) => {
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized: supervisor team progress" }, 401);
+  try {
+    const requesterRole = await getUserRole(userId);
+    const SUPERVISOR_ROLES = ["supervisor", "instructor", "admin", "superadmin"];
+    if (!SUPERVISOR_ROLES.includes(requesterRole)) {
+      await auditLog("security:permission_denied", userId, "denied", "Attempted supervisor team-progress without sufficient tier", c);
+      return c.json({ error: "Forbidden: supervisor tier required" }, 403);
+    }
+
+    await auditLog("supervisor:team_progress_view", userId, "success", "Supervisor team progress requested", c);
+
+    const allData = await encryptedGetByPrefixWithKeys(kv.getByPrefixWithKeys, "user:");
+    const profileEntries = allData.filter(({ key }: { key: string }) => key.endsWith(":profile"));
+    const progressEntries = allData.filter(({ key }: { key: string }) => key.includes(":progress:"));
+
+    // Only return learner-tier profiles to supervisors (exclude other supervisors/admins)
+    const LEARNER_ROLES = [
+      "learner", "law_enforcement", "cpi", "prosecutor", "judge",
+      "medical", "school", "advocate", "forensic", "mandated_reporter",
+    ];
+    const learnerProfiles = profileEntries
+      .map(({ value }: { value: any }) => value as any)
+      .filter((p: any) => p?.userId && LEARNER_ROLES.includes(p?.role));
+
+    const progressByUserId: Record<string, any[]> = {};
+    progressEntries.forEach(({ key, value }: { key: string; value: any }) => {
+      const uid = key.split(":")[1];
+      if (uid) {
+        if (!progressByUserId[uid]) progressByUserId[uid] = [];
+        progressByUserId[uid].push(value);
+      }
+    });
+
+    const team = learnerProfiles.map((p: any) => {
+      const userProgress = progressByUserId[p.userId] || [];
+      const completedModules = userProgress.filter((d: any) => d?.status === "completed").length;
+      const inProgressModules = userProgress.filter((d: any) => d?.status === "in_progress").length;
+      const lastActivity = userProgress
+        .map((d: any) => d?.updatedAt || d?.completedAt)
+        .filter(Boolean)
+        .sort()
+        .at(-1) || null;
+      return {
+        userId: p.userId,
+        name: p.name || "Unknown",
+        role: p.role || "learner",
+        agency: p.agency || "",
+        state: p.state || "",
+        completedModules,
+        inProgressModules,
+        lastActivity,
+        // Per-module detail: array of { moduleId, status, score, completedAt }
+        moduleProgress: userProgress.map((d: any) => ({
+          moduleId: d.moduleId,
+          status: d.status,
+          score: d.score ?? null,
+          completedAt: d.completedAt ?? null,
+        })),
+      };
+    });
+
+    return c.json({ team, total: team.length });
+  } catch (e) {
+    console.error("Supervisor team progress error:", e);
     return c.json({ error: "Internal server error" }, 500);
   }
 });

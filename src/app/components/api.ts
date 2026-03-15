@@ -201,3 +201,8 @@ export async function rootyChat(
     body: JSON.stringify({ messages }),
   }, token);
 }
+// ---------- Supervisor ----------
+
+export async function getSupervisorTeamProgress(token: string) {
+  return request("/supervisor/team-progress", {}, token);
+}

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { Users, BookOpen, Award, TrendingUp, Loader2, AlertCircle } from "lucide-react";
 import { useAuth } from "./AuthContext";
-import { getAdminStats, getAdminUsers } from "./api";
+import { getSupervisorTeamProgress } from "./api";
 import { MODULES, ROLE_LABELS } from "./data";
 import { hexAlpha } from "./PhaseIcon";
 
@@ -12,7 +12,6 @@ interface LearnerRow {
   role: string;
   completedModules: number;
   inProgressModules: number;
-  postAssessmentScore: number | null;
 }
 
 export function InstructorDashboard() {
@@ -26,18 +25,16 @@ export function InstructorDashboard() {
 
   useEffect(() => {
     if (!accessToken) return;
-    Promise.all([getAdminStats(accessToken), getAdminUsers(accessToken)])
-      .then(([statsRes, usersRes]) => {
-        const stats = statsRes?.stats;
-        if (stats) {
-          setCohortSize(stats.totalLearners ?? 0);
-          setCompletionRate(stats.completionRate ?? 0);
-          setAvgScore(stats.avgAssessmentScore ?? null);
-        }
-        const users: LearnerRow[] = (usersRes?.users ?? []);
-        setLearners(users);
+    getSupervisorTeamProgress(accessToken)
+      .then((res) => {
+        const team: LearnerRow[] = (res?.team ?? []);
+        setLearners(team);
+        setCohortSize(team.length);
+        const completers = team.filter((l) => l.completedModules >= MODULES.length).length;
+        setCompletionRate(team.length > 0 ? Math.round((completers / team.length) * 100) : 0);
+        setAvgScore(null); // per-user score not aggregated in supervisor endpoint
       })
-      .catch((e) => setError(e.message || "Failed to load cohort data"))
+      .catch((e) => setError(e.message || "Failed to load team data"))
       .finally(() => setLoading(false));
   }, [accessToken]);
 
@@ -164,7 +161,7 @@ export function InstructorDashboard() {
                           <span className="text-xs text-muted-foreground">{pct}%</span>
                         </div>
                       </td>
-                      <td className="p-4 text-sm">{learner.postAssessmentScore != null ? learner.postAssessmentScore + "%" : "—"}</td>
+                      <td className="p-4 text-sm">—</td>
                       <td className="p-4">
                         <span
                           className="px-2 py-1 rounded-full text-xs"

@@ -130,7 +130,21 @@ export function getAccessTier(role: string): AccessTier {
   return ROLE_TIER_MAP[role] || "learner";
 }
 
-/** Module access matrix: which roles can access which modules */
+/**
+ * Module access matrix: which roles can access which modules.
+ *
+ * DESIGN DECISION (#126): Module access is enforced at TWO layers:
+ *   1. UI layer — canAccessModule() below gates navigation and component rendering.
+ *   2. API layer — SERVER_MODULE_ACCESS in the edge function (index.ts) gates
+ *      PUT /progress/:moduleId and POST /simulations writes.
+ *
+ * The UI gate provides UX (hides inaccessible modules from the list).
+ * The API gate is the authoritative security boundary (defense in depth per CJIS 5.4).
+ * Both tables MUST be kept in sync. If a role is added or removed from one, update the other.
+ *
+ * Module 4 (Forensic Interview Observation) is restricted to investigative roles only.
+ * Module 7 (Mandated Reporter Essentials) is open to all roles including mandated_reporter.
+ */
 export const MODULE_ACCESS: Record<number, string[]> = {
   1: ["law_enforcement", "cpi", "prosecutor", "judge", "medical", "school", "advocate", "forensic", "mandated_reporter", "supervisor", "admin", "superadmin"],
   2: ["law_enforcement", "cpi", "prosecutor", "judge", "medical", "advocate", "forensic", "supervisor", "admin", "superadmin"],
