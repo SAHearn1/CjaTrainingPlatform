@@ -15,18 +15,25 @@ const app = new Hono();
 
 app.use("*", logger(console.log));
 
-// CORS: static allowlist — only the production Vercel deployment and local dev origins.
+// CORS: allowlist-based check covering production, preview deployments, and local dev.
 // Reflecting arbitrary origins would allow any website to make credentialed requests.
-const ALLOWED_ORIGINS = [
+// Preview deployments match the pattern: rootwork-training-platform-*-shawns-projects-5cde83d1.vercel.app
+// The team slug (shawns-projects-5cde83d1) scopes previews to the correct Vercel account.
+const ALLOWED_ORIGIN_EXACT = new Set([
   "https://rootwork-training-platform.vercel.app",
   "http://localhost:5173",
   "http://localhost:4173",
-];
+]);
+const PREVIEW_ORIGIN_RE = /^https:\/\/rootwork-training-platform(-[a-z0-9]+-shawns-projects-5cde83d1)?\.vercel\.app$/;
+
+function isAllowedOrigin(origin: string): boolean {
+  return ALLOWED_ORIGIN_EXACT.has(origin) || PREVIEW_ORIGIN_RE.test(origin);
+}
 
 app.use(
   "/*",
   cors({
-    origin: ALLOWED_ORIGINS,
+    origin: (origin) => isAllowedOrigin(origin) ? origin : "",
     allowHeaders: ["Content-Type", "Authorization", "apikey"],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     exposeHeaders: ["Content-Length"],
