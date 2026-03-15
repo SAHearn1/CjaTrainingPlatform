@@ -13,24 +13,27 @@
 ### Auth / JWT Issues
 
 - Auth is Supabase email/password. Auto-confirm is ON — no email verification step.
-- JWT is verified in the Edge Function using `supabase.auth.getUser(token)` from the Admin SDK.
+- The edge function decodes the JWT payload locally in `getUserId()` and reads `sub` directly.
+- Supabase gateway JWT verification must stay disabled for this function deployment. Deploy with `--no-verify-jwt` or valid user sessions may fail with gateway `401 Invalid JWT` before the function runs.
 - If you get 401s, check that `AuthContext` is passing `accessToken` in the `Authorization: Bearer` header.
 - Token refresh happens automatically via Supabase `onAuthStateChange`. If tokens appear expired, check `AuthContext.tsx` refresh logic.
 - Password reset: `supabase.auth.resetPasswordForEmail()` sends a link; client-side `ResetPassword.tsx` listens for `PASSWORD_RECOVERY` event. If event doesn't fire within 12s, shows "link expired" state.
 
 ### Vite Build Issues
 
-- Run `npm run build` — no separate typecheck script; TypeScript errors surface as build errors.
-- No ESLint or Prettier configured. Code style is enforced by convention only.
+- Run `pnpm build` for production bundling.
+- Run `pnpm typecheck` for TypeScript-only validation.
+- Run `pnpm lint` for ESLint and `pnpm test` for Vitest.
 - Clear `.vite` cache (`rm -rf node_modules/.vite`) if build behaves unexpectedly after config changes.
 - Figma asset imports (`figma:asset/*.png`) are resolved by `figmaAssetPlugin` in `vite.config.ts` to a 1×1 transparent PNG.
 
 ### Edge Function Issues
 
-- Deploy with: `supabase functions deploy make-server-39a35780`
+- Deploy with: `supabase functions deploy make-server-39a35780 --no-verify-jwt`
 - Edge function logs: Supabase dashboard → Edge Functions → Logs
 - The function uses Hono.js router. All routes prefixed `/make-server-39a35780/`.
 - CORS is enabled for all origins in the Hono CORS middleware.
+- Temporary `/test/bootstrap-role` test wiring has been removed. If browser automation still posts `x-bootstrap-secret`, that test harness is stale.
 - Encryption failures (wrong key length, corrupt ciphertext) throw and return 500. Check `SUPABASE_SERVICE_ROLE_KEY` is set correctly.
 
 ### Stripe Issues
@@ -48,13 +51,13 @@
 ### Local Dev
 
 ```bash
-npm install          # Install dependencies (no lock file committed)
-npm run dev          # Vite dev server at localhost:5173
-npm run build        # Production build (TypeScript compiled by Vite)
-npm run preview      # Preview production build
+pnpm install         # Install dependencies
+pnpm dev             # Vite dev server at localhost:5173
+pnpm build           # Production build
+pnpm typecheck       # TypeScript check
+pnpm lint            # ESLint
+pnpm test            # Vitest run
 ```
-
-No test runner or linter configured. No `npm test` or `npm run lint` scripts.
 
 ## Escalation
 
