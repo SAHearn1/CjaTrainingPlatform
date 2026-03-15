@@ -56,7 +56,7 @@ async function auditLog(
   try {
     const ts = Date.now();
     const entry = {
-      id: `${ts}-${Math.random().toString(36).slice(2, 8)}`,
+      id: crypto.randomUUID(),
       timestamp: new Date(ts).toISOString(),
       eventType,
       userId,
