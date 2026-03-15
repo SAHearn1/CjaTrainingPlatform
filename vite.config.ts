@@ -56,7 +56,10 @@ export default defineConfig({
   },
 
   build: {
-    sourcemap: false,
+    // 'hidden' generates .map files for Sentry without embedding sourceMappingURL
+    // in the bundle (maps are not publicly referenced). Upload maps to Sentry via
+    // sentry-cli or CI to enable de-minified stack traces. GAP-11 fix.
+    sourcemap: 'hidden',
     chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
