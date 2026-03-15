@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { motion } from "motion/react";
-import { User, Bell, Shield, Moon, Sun, KeyRound, Save, Loader2, CheckCircle2 } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { User, Bell, Shield, Moon, Sun, KeyRound, Save, Loader2, CheckCircle2, Eye, EyeOff, ChevronDown } from "lucide-react";
 import { useAuth } from "./AuthContext";
 import { useTheme } from "next-themes";
 import { ROLES } from "./data";
+import { changePassword } from "./api";
+import { PasswordStrengthMeter } from "./SecurityBadge";
 
 export function Settings() {
-  const { profile, updateProfile } = useAuth();
+  const { profile, updateProfile, accessToken } = useAuth();
   const { resolvedTheme, setTheme } = useTheme();
 
   const [name, setName] = useState(profile?.name ?? "");
@@ -15,6 +17,17 @@ export function Settings() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Password change state
+  const [showPwForm, setShowPwForm] = useState(false);
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwSuccess, setPwSuccess] = useState(false);
+  const [pwError, setPwError] = useState<string | null>(null);
 
   const [emailDigest, setEmailDigest] = useState(
     () => localStorage.getItem("pref:emailDigest") !== "false"
@@ -46,6 +59,24 @@ export function Settings() {
   function handleBrowserNotifyToggle(val: boolean) {
     setBrowserNotify(val);
     localStorage.setItem("pref:browserNotify", String(val));
+  }
+
+  async function handleChangePassword() {
+    setPwError(null);
+    if (!currentPw || !newPw || !confirmPw) { setPwError("All fields are required"); return; }
+    if (newPw !== confirmPw) { setPwError("New passwords do not match"); return; }
+    if (newPw === currentPw) { setPwError("New password must differ from current password"); return; }
+    setPwSaving(true);
+    try {
+      await changePassword(accessToken!, currentPw, newPw);
+      setPwSuccess(true);
+      setCurrentPw(""); setNewPw(""); setConfirmPw("");
+      setTimeout(() => { setPwSuccess(false); setShowPwForm(false); }, 2500);
+    } catch (e: any) {
+      setPwError(e.message || "Password change failed");
+    } finally {
+      setPwSaving(false);
+    }
   }
 
   return (
@@ -232,16 +263,100 @@ export function Settings() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-sm">Password</p>
-            <p className="text-xs text-muted-foreground">Send a password reset link to your email address</p>
+            <p className="text-xs text-muted-foreground">Change your password — must meet CJIS 5.6.2.1 requirements</p>
           </div>
-          <a
-            href="/reset-password"
+          <button
+            onClick={() => { setShowPwForm((v) => !v); setPwError(null); }}
             className="flex items-center gap-2 px-4 py-2 border border-border rounded-full text-sm hover:bg-secondary transition-colors whitespace-nowrap"
           >
             <KeyRound className="w-4 h-4" />
             Change Password
-          </a>
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showPwForm ? "rotate-180" : ""}`} />
+          </button>
         </div>
+
+        <AnimatePresence>
+          {showPwForm && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="mt-5 space-y-4 pt-5 border-t border-border">
+                {/* Current password */}
+                <div>
+                  <label htmlFor="settings-current-pw" className="block text-sm mb-1.5">Current Password</label>
+                  <div className="relative">
+                    <input
+                      id="settings-current-pw"
+                      type={showCurrentPw ? "text" : "password"}
+                      value={currentPw}
+                      onChange={(e) => setCurrentPw(e.target.value)}
+                      className="w-full px-4 py-2.5 pr-10 rounded-lg bg-input-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-sm"
+                      autoComplete="current-password"
+                    />
+                    <button type="button" onClick={() => setShowCurrentPw((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      {showCurrentPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* New password */}
+                <div>
+                  <label htmlFor="settings-new-pw" className="block text-sm mb-1.5">New Password</label>
+                  <div className="relative">
+                    <input
+                      id="settings-new-pw"
+                      type={showNewPw ? "text" : "password"}
+                      value={newPw}
+                      onChange={(e) => setNewPw(e.target.value)}
+                      className="w-full px-4 py-2.5 pr-10 rounded-lg bg-input-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-sm"
+                      autoComplete="new-password"
+                    />
+                    <button type="button" onClick={() => setShowNewPw((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <PasswordStrengthMeter password={newPw} showRequirements />
+                </div>
+
+                {/* Confirm new password */}
+                <div>
+                  <label htmlFor="settings-confirm-pw" className="block text-sm mb-1.5">Confirm New Password</label>
+                  <input
+                    id="settings-confirm-pw"
+                    type="password"
+                    value={confirmPw}
+                    onChange={(e) => setConfirmPw(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-lg bg-input-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-sm"
+                    autoComplete="new-password"
+                  />
+                  {confirmPw && newPw !== confirmPw && (
+                    <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+                  )}
+                </div>
+
+                {pwError && <p className="text-sm text-red-600">{pwError}</p>}
+
+                <button
+                  onClick={handleChangePassword}
+                  disabled={pwSaving || !currentPw || !newPw || !confirmPw}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-full text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  {pwSaving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : pwSuccess ? (
+                    <CheckCircle2 className="w-4 h-4" />
+                  ) : (
+                    <KeyRound className="w-4 h-4" />
+                  )}
+                  {pwSuccess ? "Password Updated!" : "Update Password"}
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.section>
     </div>
   );

@@ -33,6 +33,13 @@ export async function signUp(email: string, password: string, name: string) {
   });
 }
 
+export async function changePassword(token: string, currentPassword: string, newPassword: string) {
+  return request("/auth/change-password", {
+    method: "POST",
+    body: JSON.stringify({ currentPassword, newPassword }),
+  }, token);
+}
+
 // ---------- Profile ----------
 
 export async function getProfile(token: string) {

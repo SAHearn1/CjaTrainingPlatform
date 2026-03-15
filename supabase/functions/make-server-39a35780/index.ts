@@ -187,6 +187,61 @@ app.post("/make-server-39a35780/signup", async (c) => {
   }
 });
 
+// ---------- Auth: in-app password change (CJIS 5.6.2.1 / #136) ----------
+
+app.post("/make-server-39a35780/auth/change-password", async (c) => {
+  const ip = c.req.header("x-forwarded-for") || c.req.header("cf-connecting-ip") || "unknown";
+  if (!(await checkRateLimit(ip, 5, 15 * 60 * 1000))) {
+    return c.json({ error: "Too many password change attempts. Please try again later." }, 429);
+  }
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized" }, 401);
+  try {
+    const { currentPassword, newPassword } = await c.req.json();
+    if (!currentPassword || !newPassword) {
+      return c.json({ error: "currentPassword and newPassword are required" }, 400);
+    }
+    // CJIS 5.6.2.1: enforce password policy on new password
+    const errors: string[] = [];
+    if (newPassword.length < 8) errors.push("Minimum 8 characters required");
+    if (!/[A-Z]/.test(newPassword)) errors.push("At least one uppercase letter required");
+    if (!/[a-z]/.test(newPassword)) errors.push("At least one lowercase letter required");
+    if (!/[0-9]/.test(newPassword)) errors.push("At least one digit required");
+    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(newPassword)) errors.push("At least one special character required");
+    if (errors.length > 0) {
+      await auditLog("auth:password_change", userId, "failure", `Policy violations: ${errors.join(", ")}`, c);
+      return c.json({ error: errors.join(". ") }, 422);
+    }
+    const supabase = supabaseAdmin();
+    // Look up email so we can verify the current password
+    const { data: userData, error: userErr } = await supabase.auth.admin.getUserById(userId);
+    if (userErr || !userData?.user?.email) {
+      await auditLog("auth:password_change", userId, "failure", "Could not fetch user email", c);
+      return c.json({ error: "Password change failed. Please try again." }, 500);
+    }
+    // Verify current password
+    const { error: verifyErr } = await supabase.auth.signInWithPassword({
+      email: userData.user.email,
+      password: currentPassword,
+    });
+    if (verifyErr) {
+      await auditLog("auth:password_change", userId, "failure", "Current password verification failed", c);
+      return c.json({ error: "Current password is incorrect." }, 403);
+    }
+    // Update password
+    const { error: updateErr } = await supabase.auth.admin.updateUserById(userId, { password: newPassword });
+    if (updateErr) {
+      await auditLog("auth:password_change", userId, "failure", updateErr.message, c);
+      return c.json({ error: "Password update failed. Please try again." }, 500);
+    }
+    await auditLog("auth:password_change", userId, "success", "Password changed in-app", c);
+    return c.json({ ok: true });
+  } catch (e) {
+    console.error("change-password exception:", e);
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
 // ---------- Profile ----------
 
 app.get("/make-server-39a35780/profile", async (c) => {
