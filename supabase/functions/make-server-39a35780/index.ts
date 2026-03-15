@@ -376,6 +376,9 @@ app.post("/make-server-39a35780/certificates/generate", async (c) => {
     const uuid = crypto.randomUUID().replace(/-/g, "").substring(0, 8).toUpperCase();
     const certId = `RW-${year}-${uuid}`;
 
+    // Read profile to embed learnerName and role in public cert record (for CertificateVerify.tsx)
+    const certProfile = await encryptedGet<{ name?: string; role?: string }>(kv.get, `user:${userId}:profile`);
+
     const certificate = {
       certId,
       userId,
@@ -385,7 +388,13 @@ app.post("/make-server-39a35780/certificates/generate", async (c) => {
 
     // Persist by user (for GET /certificates) and by certId (for public verification)
     await kv.set(`user:${userId}:certificate`, certificate);
-    await kv.set(`cert:${certId}`, { certId, userId, issuedAt: certificate.issuedAt });
+    await kv.set(`cert:${certId}`, {
+      certId,
+      userId,
+      issuedAt: certificate.issuedAt,
+      learnerName: certProfile?.name || "",
+      role: certProfile?.role || "learner",
+    });
 
     await auditLog("certificate_generate", userId, "success", `certId=${certId}`, c);
     return c.json({ certificate });
