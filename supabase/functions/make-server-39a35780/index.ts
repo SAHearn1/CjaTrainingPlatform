@@ -55,7 +55,7 @@ async function auditLog(
 ) {
   try {
     const ts = Date.now();
-    const entry = {
+    const entry: Record<string, unknown> = {
       id: crypto.randomUUID(),
       timestamp: new Date(ts).toISOString(),
       eventType,
@@ -65,6 +65,13 @@ async function auditLog(
       ipAddress: c?.req?.header("x-forwarded-for") || c?.req?.header("cf-connecting-ip") || "unknown",
       userAgent: c?.req?.header("user-agent")?.slice(0, 120) || "unknown",
     };
+    // CJIS 5.4.1.1: Compute HMAC-SHA256 integrity fingerprint for tamper detection
+    const entryWithoutIntegrity = { ...entry, integrity: undefined };
+    const msgBytes = new TextEncoder().encode(JSON.stringify(entryWithoutIntegrity));
+    const keyBytes = new TextEncoder().encode(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "");
+    const cryptoKey = await crypto.subtle.importKey("raw", keyBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const sigBytes = await crypto.subtle.sign("HMAC", cryptoKey, msgBytes);
+    entry.integrity = btoa(String.fromCharCode(...new Uint8Array(sigBytes)));
     // Store audit log with encryption
     await encryptedSet(kv.set, `audit:${userId}:${ts}`, entry);
     // Also store in global audit prefix for admin queries
