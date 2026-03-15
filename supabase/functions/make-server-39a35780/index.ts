@@ -226,7 +226,7 @@ async function requireLicense(userId: string, userRole: string): Promise<boolean
   // If licensing is disabled platform-wide, all users may access training data
   const platformSettings = await kv.get("platform:settings") as any;
   if (!platformSettings?.licensingEnabled) return true;
-  const license = await kv.get(`user:${userId}:license`) as any;
+  const license = await encryptedGet<any>(kv.get, `user:${userId}:license`);
   if (!license) return false;
   if (license.status !== "active") return false;
   if (license.expiresAt && new Date(license.expiresAt) < new Date()) return false;
@@ -479,7 +479,7 @@ app.get("/make-server-39a35780/licensing/status", async (c) => {
   const userId = await getUserId(c);
   if (!userId) return c.json({ error: "Unauthorized: license status" }, 401);
   try {
-    const license = await kv.get(`user:${userId}:license`);
+    const license = await encryptedGet(kv.get, `user:${userId}:license`);
     return c.json({ license: license || null });
   } catch (e) {
     console.error("License status error:", e);
@@ -566,9 +566,9 @@ app.post("/make-server-39a35780/licensing/confirm", async (c) => {
       expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
     };
 
-    await kv.set(`user:${userId}:license`, license);
+    await encryptedSet(kv.set, `user:${userId}:license`, license);
     // Also store in an org-level key for admin lookups
-    await kv.set(`license:${session.id}`, { ...license, userId });
+    await encryptedSet(kv.set, `license:${session.id}`, { ...license, userId });
 
     return c.json({ license });
   } catch (e) {
@@ -607,7 +607,7 @@ app.post("/make-server-39a35780/licensing/webhook", async (c) => {
     if (!userId) return c.json({ received: true });
 
     // Idempotency: skip if already activated
-    const existing = await kv.get("license:" + session.id);
+    const existing = await encryptedGet(kv.get, "license:" + session.id);
     if (existing) return c.json({ received: true });
 
     const plan = LICENSE_PLANS.find((p) => p.id === meta.planId);
@@ -626,8 +626,8 @@ app.post("/make-server-39a35780/licensing/webhook", async (c) => {
       activatedVia: "webhook",
     };
 
-    await kv.set("user:" + userId + ":license", license);
-    await kv.set("license:" + session.id, { ...license, userId });
+    await encryptedSet(kv.set, "user:" + userId + ":license", license);
+    await encryptedSet(kv.set, "license:" + session.id, { ...license, userId });
     await auditLog("payment:license_activated", userId, "success",
       "planId=" + meta.planId + " via webhook sessionId=" + session.id);
     console.log("License activated via webhook for user:", userId);
