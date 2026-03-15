@@ -213,7 +213,7 @@ app.put("/make-server-39a35780/profile", async (c) => {
     // assignment is reserved for PUT /admin/users/:id/role.
     const SELF_REGISTERABLE_ROLES = [
       "learner", "law_enforcement", "cpi", "prosecutor", "judge",
-      "medical", "school", "victim_advocate", "forensic_interviewer", "mandated_reporter",
+      "medical", "school", "advocate", "forensic", "mandated_reporter",
     ];
     const { role: rawRole, userId: _uid, joinedAt: _joinedAt, ...safeBody } = body;
     const allowedRole = rawRole && SELF_REGISTERABLE_ROLES.includes(rawRole) ? rawRole : undefined;

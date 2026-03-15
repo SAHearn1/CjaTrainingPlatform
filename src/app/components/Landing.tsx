@@ -57,6 +57,32 @@ const iconMap: Record<string, React.ReactNode> = {
   FileWarning: <FileWarning className="w-6 h-6" />,
 };
 
+/* ─── role descriptions for signup ─── */
+const ROLE_DESCRIPTIONS: Record<string, string> = {
+  law_enforcement: "Local, state, or federal sworn officers",
+  cpi: "CPS/DCF investigation professionals",
+  prosecutor: "Case filing and prosecution",
+  judge: "Judicial officers presiding over cases",
+  medical: "Physicians, nurses, forensic examiners",
+  school: "Teachers, counselors, administrators",
+  advocate: "Trauma-informed victim support professionals",
+  forensic: "Specialist child interview professionals",
+  mandated_reporter: "Legally required reporters of abuse",
+};
+
+/** The 9 criminal justice professional roles available during self-registration. */
+const SIGNUP_ROLES = [
+  { id: "law_enforcement", label: "Law Enforcement Officer", icon: "Shield" },
+  { id: "cpi", label: "Child Protective Investigator", icon: "Heart" },
+  { id: "prosecutor", label: "Prosecutor / Assistant DA", icon: "Scale" },
+  { id: "judge", label: "Judge / Magistrate", icon: "Gavel" },
+  { id: "medical", label: "Medical Professional", icon: "Stethoscope" },
+  { id: "school", label: "School Personnel", icon: "GraduationCap" },
+  { id: "advocate", label: "Victim Advocate", icon: "HandHeart" },
+  { id: "forensic", label: "Forensic Interviewer", icon: "Mic" },
+  { id: "mandated_reporter", label: "Mandated Reporter", icon: "FileWarning" },
+] as const;
+
 /* ─── TRACE descriptions ─── */
 const TRACE_DESCRIPTIONS: Record<string, string> = {
   T: "Every investigation begins with a trigger \u2014 a report, a disclosure, a scene. Recognizing your own physiological and emotional activation in that moment is the first step toward a measured response.",
@@ -756,21 +782,45 @@ function AuthModal({
                 </div>
               )}
 
-              <div className="grid grid-cols-3 gap-3 mb-6">
-                {ROLES.map((role) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-6">
+                {SIGNUP_ROLES.map((role) => (
                   <button
                     key={role.id}
-                    onClick={() => setSelectedRole(role.id)}
-                    className={`p-3 rounded-xl border-2 transition-all text-center ${
+                    onClick={() => setSelectedRole(role.id as RoleId)}
+                    aria-pressed={selectedRole === role.id}
+                    className={`flex items-start gap-3 p-3 rounded-xl border-2 transition-all text-left ${
                       selectedRole === role.id
-                        ? "border-primary bg-primary/5 shadow-md"
-                        : "border-border hover:border-primary/30 hover:bg-secondary"
+                        ? "border-primary shadow-md"
+                        : "border-border hover:border-primary/40 hover:bg-secondary"
                     }`}
+                    style={selectedRole === role.id ? { background: "rgba(8,42,25,0.06)" } : undefined}
                   >
-                    <div className={`flex justify-center mb-1.5 ${selectedRole === role.id ? "text-primary" : "text-muted-foreground"}`}>
+                    <div
+                      className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5"
+                      style={
+                        selectedRole === role.id
+                          ? { background: "#082A19", color: "#C9A84C" }
+                          : { background: "rgba(8,42,25,0.08)", color: "#082A19" }
+                      }
+                    >
                       {iconMap[role.icon]}
                     </div>
-                    <span className="text-[11px] leading-tight block">{role.label}</span>
+                    <div className="min-w-0">
+                      <span className="text-[13px] font-medium leading-tight block">{role.label}</span>
+                      <span className="text-[11px] text-muted-foreground leading-tight block mt-0.5">
+                        {ROLE_DESCRIPTIONS[role.id]}
+                      </span>
+                    </div>
+                    {selectedRole === role.id && (
+                      <div
+                        className="shrink-0 w-4 h-4 rounded-full flex items-center justify-center ml-auto mt-0.5"
+                        style={{ background: "#C9A84C" }}
+                      >
+                        <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
+                          <path d="M1 3L3 5L7 1" stroke="#082A19" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
+                    )}
                   </button>
                 ))}
               </div>
