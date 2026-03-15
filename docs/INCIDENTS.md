@@ -8,6 +8,29 @@ _None_
 
 ## Resolved Incidents
 
+### 2026-03-15 — Sprint 1 security fixes applied to edge function (issues #104–#116)
+
+**Issues closed:** #104 (GAP-01), #105 (GAP-02), #106 (GAP-03), #107+#119 (GAP-04/16), #109 (GAP-06), #110 (GAP-07), #111 (GAP-08), #113 (GAP-10), #115 (GAP-12), #116 (GAP-13)
+
+**Summary of changes — `supabase/functions/make-server-39a35780/index.ts`:**
+- **#104/GAP-01:** `/certificates/generate` now reads user profile at cert generation time and writes `learnerName` and `role` into the public `cert:{certId}` KV record so `CertificateVerify.tsx` receives expected fields.
+- **#105/GAP-02 + #116/GAP-13:** All license KV writes (`user:{userId}:license`, `license:{sessionId}`) in `/licensing/confirm` and `/licensing/webhook` now use `encryptedSet`. Idempotency check and `/licensing/status` read now use `encryptedGet`. `requireLicense()` now uses `encryptedGet` to read decrypted license object. These two issues committed atomically.
+- **#106/GAP-03:** CORS origin reflection replaced with static allowlist: `rootwork-training-platform.vercel.app`, `localhost:5173`, `localhost:4173`.
+- **#107+#119/GAP-04/16:** `auditLog()` entry ID changed from `Math.random().toString(36)` to `crypto.randomUUID()` per CJIS 5.4.1.1.
+- **#109/GAP-06:** `/rooty/chat` now calls `getUserId(c)` at handler entry and returns 401 when no valid JWT is present.
+- **#110/GAP-07:** `/admin/audit` now fetches full encrypted `audit:{userId}:{ts}` record for each index entry. Falls back to index data with `full_record_unavailable: true` flag on fetch error.
+- **#111/GAP-08:** `auditLog()` computes HMAC-SHA256 integrity fingerprint (keyed on `SUPABASE_SERVICE_ROLE_KEY`) over the serialized entry and stores it as `entry.integrity` for tamper detection.
+- **#115/GAP-12:** `/signup` error handler replaced with classified safe messages (duplicate email, validation, generic fallback). Raw Supabase error message no longer forwarded to client.
+
+**Summary of changes — `supabase/functions/make-server-39a35780/kv_store.tsx`:**
+- **#113/GAP-10:** Per-call `createClient()` factory replaced with `getKvClient()` lazy singleton. Eliminates new HTTP client instantiation on every KV operation.
+
+**Verification:** `npm run typecheck` — 0 errors. `npm run test` — 32/32 tests pass.
+
+**Issue:** Sprint 1 batch — issues #104–#116
+
+## Resolved Incidents
+
 ### 2026-03-15 — Enterprise production gap analysis + GitHub issue batch creation (#104–#136)
 
 **What happened:** A full deterministic gap analysis of the repository was conducted against production-critical flows for all 9 role types. Analysis used direct code evidence (no speculation): edge function read in sections, route guards, encryption paths, KV write paths, CSP, CI config, test coverage, and lint state all inspected against documented behavior.
