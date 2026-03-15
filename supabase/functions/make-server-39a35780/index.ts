@@ -15,14 +15,18 @@ const app = new Hono();
 
 app.use("*", logger(console.log));
 
-// CORS: reflect any origin — JWT verification enforces access control.
-// Maintaining a static ALLOWED_ORIGINS list breaks every new Vercel deployment.
-// Use ALLOWED_ORIGINS env var to optionally restrict in future if needed.
+// CORS: static allowlist — only the production Vercel deployment and local dev origins.
+// Reflecting arbitrary origins would allow any website to make credentialed requests.
+const ALLOWED_ORIGINS = [
+  "https://rootwork-training-platform.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:4173",
+];
 
 app.use(
   "/*",
   cors({
-    origin: (origin) => origin,
+    origin: ALLOWED_ORIGINS,
     allowHeaders: ["Content-Type", "Authorization", "apikey"],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     exposeHeaders: ["Content-Length"],
