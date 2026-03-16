@@ -4,9 +4,38 @@ This file tracks incidents in this repository.
 
 ## Active Incidents
 
-_None_
+### 2026-03-16 — Production signup "Failed to fetch" from rwfw-cjs-training.com (browser CORS / proxy block)
+
+**What happened:** Account creation from `https://rwfw-cjs-training.com` fails with a `TypeError: Failed to fetch` in the browser. Network inspection shows the POST to the edge function returns a 403 with `X-Proxy-Error: blocked-by-allowlist` from the Supabase CDN/API gateway. The block is origin-specific: the gateway rejects cross-origin POST requests where the `Origin` header is `https://rwfw-cjs-training.com` because that domain was not in the project-level allowed origins list. OPTIONS preflight requests do reach the function (confirmed in Supabase invocation logs: `→ OPTIONS /make-server-39a35780/signup 204 2ms`), confirming the function-level CORS code is correct. POST requests are blocked at the gateway before the function code runs.
+
+**Root cause:** The Supabase project's Auth URL Configuration had `Site URL` set to `http://localhost:3000` (the development default) and no entries in the Redirect URLs list. The Supabase API gateway derives its allowed-origins allowlist from these two settings. Because `https://rwfw-cjs-training.com` appeared in neither field, the gateway blocked all cross-origin POST requests from that domain.
+
+**Resolution applied (2026-03-16, this session):**
+- `Site URL` updated from `http://localhost:3000` → `https://rwfw-cjs-training.com` (Supabase Dashboard → Authentication → URL Configuration)
+- `https://rwfw-cjs-training.com` added to the Redirect URLs list (same page) — Total URLs: 1
+
+**Pending verification:** Chrome extension disconnected before end-to-end browser test could be completed. Verify by visiting `https://rwfw-cjs-training.com`, attempting account creation with a test email, and confirming no "Failed to fetch" error. Also verify that the Vercel deploy issue (pre-existing: `VERCEL_ORG_ID` / `VERCEL_TOKEN` secret misconfiguration causing "Error: You do not have access to the specified account") does not prevent `rwfw-cjs-training.com` from serving the current frontend build.
+
+**Note:** curl probes from this VM always return `403 blocked-by-allowlist` due to data center IP filtering — only browser-originating requests can validate the fix.
+
+**Issue:** Discovered 2026-03-16 during CI fix validation session
 
 ## Resolved Incidents
+
+### 2026-03-16 — CI test gate broken for 54+ runs (VITE_SUPABASE_ANON_KEY missing from Test step env)
+
+**What happened:** Every CI run since Sprint 2 was failing at the `Test` step with a failure in `api.test.ts` line 37: `expect(headers['apikey']).toBeTruthy()`. The test asserts that the `apikey` header sent by the frontend API client is non-empty. Because `VITE_SUPABASE_ANON_KEY` was not declared in the CI `Test` step's `env:` block, Vite inlined `undefined` at build time, causing the header assertion to fail. This blocked all 54+ CI runs and prevented edge function and Vercel deployments from triggering via the `deploy-edge-functions` and `deploy-vercel` jobs (both gated on `needs: check`).
+
+**Root cause:** `.github/workflows/ci.yml` `Test` step was missing the `VITE_SUPABASE_ANON_KEY` environment variable. The `Build` step had `VITE_SUPABASE_ANON_KEY: placeholder` correctly set (added in an earlier incident), but the `Test` step ran before `Build` with no value, causing `import.meta.env.VITE_SUPABASE_ANON_KEY` to be `undefined` at test time.
+
+**Resolution:**
+- Added `VITE_SUPABASE_ANON_KEY: placeholder_test_anon_key` to the `Test` step `env:` block in `.github/workflows/ci.yml`
+- Commit: `3c2f2a1` — "fix(ci): add VITE_SUPABASE_ANON_KEY to Test step env to unblock CI"
+- CI run #55 passed all steps: type-check ✅, lint ✅ (0 errors), test ✅ (62/62), build ✅, edge function deployed ✅
+
+**Issue:** Discovered 2026-03-16; commit `3c2f2a1`
+
+---
 
 ### 2026-03-15 — Sprint 1 security fixes applied to edge function (issues #104–#116)
 
