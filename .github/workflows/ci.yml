@@ -93,19 +93,12 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
-  deploy-vercel:
-    name: Deploy to Vercel
-    runs-on: ubuntu-latest
-    needs: check
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy to Vercel (production)
-        run: |
-          npx vercel --prod --token=${{ secrets.VERCEL_TOKEN }} \
-            --scope=${{ secrets.VERCEL_ORG_ID }} \
-            --yes
-        env:
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  # Frontend deployment is handled by Vercel's native GitHub integration.
+  # The integration auto-deploys every push to main and every PR (preview).
+  # A redundant CI deploy step was removed because it required a VERCEL_TOKEN
+  # secret that expired, causing deploy-vercel to fail while the GitHub
+  # integration continued to deploy successfully.
+  #
+  # Vercel project:  rootwork-training-platform (prj_07pcPbu0uEeln6WSV8I1hsCq4luV)
+  # Vercel team:     shawns-projects-5cde83d1   (team_fKFspIjLsih5PkMNdnArXD8X)
+  # Production URL:  https://rwfw-cjs-training.com
