@@ -59,6 +59,10 @@ jobs:
 
       - name: Test
         run: npm run test -- --run
+        env:
+          # publicAnonKey (import.meta.env.VITE_SUPABASE_ANON_KEY) must be a
+          # non-empty string at test time so the apikey header assertion passes.
+          VITE_SUPABASE_ANON_KEY: placeholder_test_anon_key
 
       - name: Build
         run: npm run build
