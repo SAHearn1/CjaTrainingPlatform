@@ -226,3 +226,32 @@ export async function downloadCertificatePDF(token: string, certId: string): Pro
   }
   return res.blob();
 }
+
+export async function approveVideo(token: string, videoId: string, notes?: string) {
+  return request(`/admin/videos/${encodeURIComponent(videoId)}/approve`, {
+    method: "PUT",
+    body: JSON.stringify({ notes }),
+  }, token);
+}
+
+export async function rejectVideo(token: string, videoId: string, notes: string, url?: string) {
+  return request(`/admin/videos/${encodeURIComponent(videoId)}/reject`, {
+    method: "PUT",
+    body: JSON.stringify({ notes, ...(url !== undefined ? { url } : {}) }),
+  }, token);
+}
+
+export async function getContentOverrides(): Promise<Record<string, any>> {
+  return request("/content-overrides");
+}
+
+export async function updateContentOverride(
+  token: string,
+  videoId: string,
+  data: { content?: string[]; keyTerms?: Array<{ term: string; definition: string }> }
+) {
+  return request(`/admin/content-overrides/${encodeURIComponent(videoId)}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }, token);
+}

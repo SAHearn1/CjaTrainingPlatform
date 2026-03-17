@@ -19,6 +19,9 @@ export interface VideoEntry {
   status: VideoStatus;
   updatedAt: string;
   updatedBy: string;
+  reviewNotes?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
 }
 
 /** All 48 known video slots — titles/types never change, only URLs do. */
@@ -139,4 +142,57 @@ export function useVideoUrl(videoId: string | undefined): string | undefined {
   if (!videoId) return undefined;
   const entry = registry[videoId];
   return entry?.url || undefined;
+}
+
+// ── Content Overrides ──
+
+export interface ContentOverride {
+  content?: string[];
+  keyTerms?: Array<{ term: string; definition: string }>;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+interface ContentOverridesState {
+  overrides: Record<string, ContentOverride>;
+  loading: boolean;
+  refresh: () => Promise<void>;
+}
+
+const ContentOverridesContext = createContext<ContentOverridesState | null>(null);
+
+export function ContentOverridesProvider({ children }: { children: ReactNode }) {
+  const [overrides, setOverrides] = useState<Record<string, ContentOverride>>({});
+  const [loading, setLoading] = useState(true);
+
+  const refresh = useCallback(async () => {
+    try {
+      const data = await import("./api").then(m => m.getContentOverrides());
+      setOverrides(data ?? {});
+    } catch {
+      // Non-fatal — platform renders static content if overrides unavailable
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  return (
+    <ContentOverridesContext.Provider value={{ overrides, loading, refresh }}>
+      {children}
+    </ContentOverridesContext.Provider>
+  );
+}
+
+export function useContentOverrides() {
+  const ctx = useContext(ContentOverridesContext);
+  if (!ctx) throw new Error("useContentOverrides must be used inside ContentOverridesProvider");
+  return ctx;
+}
+
+export function useContentOverride(videoId: string | undefined): ContentOverride | undefined {
+  const { overrides } = useContentOverrides();
+  if (!videoId) return undefined;
+  return overrides[videoId];
 }

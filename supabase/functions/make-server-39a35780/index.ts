@@ -21,6 +21,8 @@ app.use("*", logger(console.log));
 // The team slug (shawns-projects-5cde83d1) scopes previews to the correct Vercel account.
 const ALLOWED_ORIGIN_EXACT = new Set([
   "https://rootwork-training-platform.vercel.app",
+  "https://rwfw-cjs-training.com",
+  "https://www.rwfw-cjs-training.com",
   "http://localhost:5173",
   "http://localhost:4173",
 ]);
@@ -1138,6 +1140,111 @@ app.put("/make-server-39a35780/admin/videos/:videoId", async (c) => {
     };
     await kv.set(VIDEO_REGISTRY_KEY, registry);
     await auditLog("admin:video_registry_update", userId, "success", `Updated video ${videoId}: status=${registry[videoId].status}`, c);
+    return c.json({ ok: true, entry: registry[videoId] });
+  } catch (e) {
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
+// ---------- Content Overrides ----------
+// Text content overrides for section content and key terms.
+// Public read so learners see corrected text. Write is superadmin-only.
+
+const CONTENT_OVERRIDES_KEY = "platform:content_overrides";
+
+app.get("/make-server-39a35780/content-overrides", async (c) => {
+  try {
+    const overrides = await kv.get(CONTENT_OVERRIDES_KEY) ?? {};
+    return c.json(overrides);
+  } catch (e) {
+    console.error("Content overrides fetch error:", e);
+    return c.json({});
+  }
+});
+
+app.put("/make-server-39a35780/admin/content-overrides/:videoId", async (c) => {
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized" }, 401);
+  try {
+    const requesterRole = await getUserRole(userId);
+    if (requesterRole !== "superadmin") {
+      await auditLog("security:permission_denied", userId, "denied", "Attempted content override write without superadmin permission", c);
+      return c.json({ error: "Forbidden" }, 403);
+    }
+    const videoId = c.req.param("videoId");
+    const { content, keyTerms } = await c.req.json();
+    const overrides: Record<string, any> = await kv.get(CONTENT_OVERRIDES_KEY) ?? {};
+    overrides[videoId] = {
+      ...(content !== undefined ? { content } : {}),
+      ...(keyTerms !== undefined ? { keyTerms } : {}),
+      updatedAt: new Date().toISOString(),
+      updatedBy: userId,
+    };
+    await kv.set(CONTENT_OVERRIDES_KEY, overrides);
+    await auditLog("admin:content_override_update", userId, "success", `Updated content override for ${videoId}`, c);
+    return c.json({ ok: true, override: overrides[videoId] });
+  } catch (e) {
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
+// ---------- Video Review Workflow ----------
+// Approve: sets status=active, records reviewedAt/By, audit log.
+// Reject: keeps in_review, adds review notes for revision.
+
+app.put("/make-server-39a35780/admin/videos/:videoId/approve", async (c) => {
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized" }, 401);
+  try {
+    const requesterRole = await getUserRole(userId);
+    if (!ADMIN_ROLES.includes(requesterRole)) {
+      await auditLog("security:permission_denied", userId, "denied", "Attempted video approval without permission", c);
+      return c.json({ error: "Forbidden" }, 403);
+    }
+    const videoId = c.req.param("videoId");
+    const body = await c.req.json().catch(() => ({}));
+    const registry: Record<string, any> = await kv.get(VIDEO_REGISTRY_KEY) ?? {};
+    const prev = registry[videoId] ?? {};
+    registry[videoId] = {
+      ...prev,
+      status: "active",
+      reviewedAt: new Date().toISOString(),
+      reviewedBy: userId,
+      ...(body.notes ? { reviewNotes: body.notes } : {}),
+      updatedAt: new Date().toISOString(),
+      updatedBy: userId,
+    };
+    await kv.set(VIDEO_REGISTRY_KEY, registry);
+    await auditLog("admin:video_approved", userId, "success", `Approved video ${videoId}`, c);
+    return c.json({ ok: true, entry: registry[videoId] });
+  } catch (e) {
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
+app.put("/make-server-39a35780/admin/videos/:videoId/reject", async (c) => {
+  const userId = await getUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized" }, 401);
+  try {
+    const requesterRole = await getUserRole(userId);
+    if (!ADMIN_ROLES.includes(requesterRole)) {
+      await auditLog("security:permission_denied", userId, "denied", "Attempted video rejection without permission", c);
+      return c.json({ error: "Forbidden" }, 403);
+    }
+    const videoId = c.req.param("videoId");
+    const { notes, url } = await c.req.json();
+    const registry: Record<string, any> = await kv.get(VIDEO_REGISTRY_KEY) ?? {};
+    const prev = registry[videoId] ?? {};
+    registry[videoId] = {
+      ...prev,
+      status: "in_review",
+      reviewNotes: notes ?? "",
+      ...(url !== undefined ? { url } : {}),
+      updatedAt: new Date().toISOString(),
+      updatedBy: userId,
+    };
+    await kv.set(VIDEO_REGISTRY_KEY, registry);
+    await auditLog("admin:video_rejected", userId, "success", `Rejected video ${videoId}: ${notes}`, c);
     return c.json({ ok: true, entry: registry[videoId] });
   } catch (e) {
     return c.json({ error: "Internal server error" }, 500);

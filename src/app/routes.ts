@@ -24,6 +24,7 @@ const Settings = lazy(() => import("./components/Settings").then(m => ({ default
 const InstructorDashboard = lazy(() => import("./components/InstructorDashboard").then(m => ({ default: m.InstructorDashboard })));
 const AgencyManagement = lazy(() => import("./components/AgencyManagement").then(m => ({ default: m.AgencyManagement })));
 const AdminVideos = lazy(() => import("./components/AdminVideos").then(m => ({ default: m.AdminVideos })));
+const ContentReviewQueue = lazy(() => import("./components/ContentReviewQueue").then(m => ({ default: m.ContentReviewQueue })));
 
 export const router = createBrowserRouter([
   {
@@ -68,6 +69,7 @@ export const router = createBrowserRouter([
             children: [
               { path: "licensing", Component: Licensing },
               { path: "licensing/success", Component: LicensingSuccess },
+              { path: "admin/review", Component: ContentReviewQueue },
             ],
           },
           { path: "settings", Component: Settings },

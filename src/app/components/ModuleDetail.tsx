@@ -27,6 +27,7 @@ import { VideoEmbed } from "./VideoEmbed";
 import { useAuth } from "./AuthContext";
 import { PhaseIcon, PHASE_HEX as PHASE_HEX_IMPORT, hexAlpha } from "./PhaseIcon";
 import { StateSelector, StateComparisonCard } from "./StateSelector";
+import { useContentOverrides } from "./VideoRegistry";
 
 // Brand 5Rs phase colors (hex + computed rgba tints)
 const PHASE_HEX: Record<string, string> = PHASE_HEX_IMPORT;
@@ -51,6 +52,7 @@ export function ModuleDetail() {
   const navigate = useNavigate();
   const module = MODULES.find((m) => m.id === Number(moduleId));
   const { progress: userProgress, watchedVignettes, markVignetteWatched, unmarkVignetteWatched, updateModuleProgress, profile, updateProfile } = useAuth();
+  const { overrides: contentOverrides } = useContentOverrides();
   const progress = userProgress.find((p) => p.moduleId === Number(moduleId));
   // Reflections: controlled state persisted to localStorage per module+section
   const [reflections, setReflections] = useState<Record<string, string>>(() => {
@@ -576,7 +578,7 @@ export function ModuleDetail() {
                         <div className="mb-4"><TTSControls text={buildSectionTTS(section)} label={`Listen to ${section.phase} section`} /></div>
 
                         <div className="space-y-3 mb-5">
-                          {section.content.map((text, i) => (
+                          {(contentOverrides[section.videoId ?? ""]?.content ?? section.content).map((text, i) => (
                             <div key={i} className="flex items-start gap-3 group/item">
                               <div
                                 className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs mt-0.5"
@@ -590,11 +592,13 @@ export function ModuleDetail() {
                           ))}
                         </div>
 
-                        {section.keyTerms && section.keyTerms.length > 0 && (
+                        {(() => {
+                          const activeKeyTerms = contentOverrides[section.videoId ?? ""]?.keyTerms ?? section.keyTerms;
+                          return activeKeyTerms && activeKeyTerms.length > 0 ? (
                           <div className="bg-secondary rounded-xl p-4 mb-4">
                             <div className="flex items-center gap-2 mb-3"><Bookmark className="w-4 h-4 text-primary" /><p className="text-xs text-primary">Key Terms & Definitions</p></div>
                             <div className="grid sm:grid-cols-2 gap-3">
-                              {section.keyTerms.map((kt) => (
+                              {activeKeyTerms.map((kt) => (
                                 <div key={kt.term} className="bg-card rounded-lg p-3 border border-border">
                                   <div className="flex items-center justify-between">
                                     <p className="text-xs font-medium text-primary">{kt.term}</p>
@@ -605,19 +609,19 @@ export function ModuleDetail() {
                               ))}
                             </div>
                           </div>
-                        )}
+                        ) : null; })()}
 
-                        {section.videoUrl && (
+                        {(section.videoId || section.videoUrl) && (
                           <div className="mb-4">
                             <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1.5">
                               <Video className="w-3.5 h-3.5" /> Video Lecture
                             </p>
-                            <VideoEmbed url={section.videoUrl} title={`${section.phase} — ${section.title}`} />
+                            <VideoEmbed videoId={section.videoId} url={section.videoUrl} title={`${section.phase} — ${section.title}`} />
                           </div>
                         )}
 
                         <div className="grid sm:grid-cols-2 gap-3 mb-4">
-                          {!section.videoUrl && (
+                          {!section.videoId && !section.videoUrl && (
                           <div className="bg-muted rounded-lg p-4 flex items-center gap-3">
                             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><Video className="w-5 h-5 text-primary" /></div>
                             <div><p className="text-xs">Video Lecture</p><p className="text-xs text-muted-foreground">Coming soon — check back for updates</p></div>
