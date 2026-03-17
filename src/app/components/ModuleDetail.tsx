@@ -81,6 +81,16 @@ export function ModuleDetail() {
     }
   }, [profile?.selectedState]);
 
+  // Auto-expand and scroll to section when URL hash is present (e.g. /modules/1#m1-root)
+  useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    if (!hash || !preAssessmentDone) return;
+    setExpandedSections((prev) => { const next = new Set(prev); next.add(hash); return next; });
+    setTimeout(() => {
+      document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 150);
+  }, [preAssessmentDone]);
+
   // ── Time tracking (#67) ──
   // Accumulate seconds spent on this module page and persist every 60 s.
   const sessionStartRef = useRef<number>(Date.now());
@@ -509,6 +519,7 @@ export function ModuleDetail() {
             return (
               <div
                 key={section.id}
+                id={section.id}
                 className="bg-card rounded-xl border overflow-hidden transition-all"
                 style={{
                   borderColor: isExpanded ? hexAlpha(hex, 0.35) : "var(--border)",

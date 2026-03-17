@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { Link } from "react-router";
 import {
   CheckCircle2,
   XCircle,
@@ -12,11 +13,23 @@ import {
   Clock,
   AlertCircle,
   CheckCheck,
+  LayoutTemplate,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "./AuthContext";
 import { useVideoRegistry, VIDEO_REGISTRY_META, useContentOverrides } from "./VideoRegistry";
 import { VideoEmbed } from "./VideoEmbed";
+
+function getModuleLink(videoId: string): string | null {
+  const meta = VIDEO_REGISTRY_META[videoId];
+  if (!meta) return null;
+  if (meta.type === "simulation" && meta.module) return `/modules/${meta.module}/simulation`;
+  if (meta.module && meta.phase) {
+    const sectionId = `m${meta.module}-${meta.phase.toLowerCase()}`;
+    return `/modules/${meta.module}#${sectionId}`;
+  }
+  return null;
+}
 import { MODULES } from "./data";
 import type { Section, Module, KeyTerm } from "./data";
 import * as api from "./api";
@@ -273,7 +286,21 @@ export function ContentReviewQueue() {
                       <div className="grid lg:grid-cols-2 gap-5">
                         {/* Left: Video Player + URL */}
                         <div className="space-y-3">
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Video</p>
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Video</p>
+                            {getModuleLink(videoId) && (
+                              <Link
+                                to={getModuleLink(videoId)!}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-xs text-primary hover:underline"
+                                title="View where this video is embedded in the module"
+                              >
+                                <LayoutTemplate className="w-3 h-3" />
+                                View in Module
+                              </Link>
+                            )}
+                          </div>
                           {currentUrl && currentUrl.includes("invideo.io") ? (
                             <a
                               href={currentUrl}

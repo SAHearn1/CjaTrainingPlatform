@@ -1,10 +1,23 @@
 import { useState, useMemo, useRef } from "react";
-import { Check, Pencil, X, ExternalLink, Film, BookOpen, Clapperboard, Upload, ChevronDown, ChevronUp, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Link } from "react-router";
+import { Check, Pencil, X, ExternalLink, Film, BookOpen, Clapperboard, Upload, ChevronDown, ChevronUp, AlertCircle, CheckCircle2, LayoutTemplate } from "lucide-react";
 import { useAuth } from "./AuthContext";
 import { useVideoRegistry, VIDEO_REGISTRY_META, type VideoStatus, type VideoType } from "./VideoRegistry";
 import { updateVideoEntry } from "./api";
 import { VideoEmbed } from "./VideoEmbed";
 import { projectId, publicAnonKey } from "/utils/supabase/info";
+
+/** Builds a deep link into the module page for a given video ID. */
+function getModuleLink(videoId: string): string | null {
+  const meta = VIDEO_REGISTRY_META[videoId];
+  if (!meta) return null;
+  if (meta.type === "simulation" && meta.module) return `/modules/${meta.module}/simulation`;
+  if (meta.module && meta.phase) {
+    const sectionId = `m${meta.module}-${meta.phase.toLowerCase()}`;
+    return `/modules/${meta.module}#${sectionId}`;
+  }
+  return null;
+}
 
 async function bulkUpdateVideos(token: string, entries: Record<string, { url?: string; status?: string }>) {
   const BASE = `https://${projectId}.supabase.co/functions/v1/make-server-39a35780`;
@@ -249,9 +262,23 @@ export function AdminVideos() {
                 <p className="font-semibold text-sm">{VIDEO_REGISTRY_META[previewId]?.title}</p>
                 <p className="text-xs text-muted-foreground">{previewId}</p>
               </div>
-              <button onClick={() => setPreviewId(null)} className="p-1 rounded hover:bg-muted">
-                <X className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                {getModuleLink(previewId) && (
+                  <Link
+                    to={getModuleLink(previewId)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-xs text-primary hover:underline px-2 py-1 rounded hover:bg-muted"
+                    title="View where this video is embedded in the module"
+                  >
+                    <LayoutTemplate className="w-3.5 h-3.5" />
+                    View in Module
+                  </Link>
+                )}
+                <button onClick={() => setPreviewId(null)} className="p-1 rounded hover:bg-muted">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
             <div className="p-4">
               {registry[previewId]?.url?.includes("invideo.io") ? (
