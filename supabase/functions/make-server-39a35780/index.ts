@@ -1094,7 +1094,7 @@ app.post("/make-server-39a35780/admin/videos/bulk", async (c) => {
     const registry: Record<string, any> = await kv.get(VIDEO_REGISTRY_KEY) ?? {};
     const now = new Date().toISOString();
     for (const [videoId, data] of Object.entries(entries) as [string, any][]) {
-      registry[videoId] = { ...registry[videoId], ...data, updatedAt: now, updatedBy: "system" };
+      registry[videoId] = { ...registry[videoId], ...data, status: "in_review", updatedAt: now, updatedBy: "system" };
     }
     await kv.set(VIDEO_REGISTRY_KEY, registry);
     return c.json({ ok: true, updated: Object.keys(entries).length });

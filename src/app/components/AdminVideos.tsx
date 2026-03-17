@@ -254,7 +254,20 @@ export function AdminVideos() {
               </button>
             </div>
             <div className="p-4">
-              <VideoEmbed videoId={previewId} title={VIDEO_REGISTRY_META[previewId]?.title} />
+              {registry[previewId]?.url?.includes("invideo.io") ? (
+                <a
+                  href={registry[previewId].url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center justify-center gap-3 w-full rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors text-center p-10"
+                >
+                  <Film className="w-10 h-10 text-primary/50" />
+                  <span className="text-sm font-medium text-primary">Open in InVideo to Review</span>
+                  <span className="text-xs text-muted-foreground">InVideo draft links cannot be embedded — click to open in a new tab</span>
+                </a>
+              ) : (
+                <VideoEmbed videoId={previewId} title={VIDEO_REGISTRY_META[previewId]?.title} />
+              )}
             </div>
           </div>
         </div>

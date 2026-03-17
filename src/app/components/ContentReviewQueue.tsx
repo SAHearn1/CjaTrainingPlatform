@@ -274,11 +274,24 @@ export function ContentReviewQueue() {
                         {/* Left: Video Player + URL */}
                         <div className="space-y-3">
                           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Video</p>
-                          <VideoEmbed
-                            videoId={videoId}
-                            url={currentUrl || undefined}
-                            title={meta.title}
-                          />
+                          {currentUrl && currentUrl.includes("invideo.io") ? (
+                            <a
+                              href={currentUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex flex-col items-center justify-center gap-3 w-full rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors text-center p-10"
+                            >
+                              <Film className="w-10 h-10 text-primary/50" />
+                              <span className="text-sm font-medium text-primary">Open in InVideo to Review</span>
+                              <span className="text-xs text-muted-foreground">InVideo draft links cannot be embedded — click to open in a new tab</span>
+                            </a>
+                          ) : (
+                            <VideoEmbed
+                              videoId={videoId}
+                              url={currentUrl || undefined}
+                              title={meta.title}
+                            />
+                          )}
                           <div>
                             <label htmlFor={`url-${videoId}`} className="text-xs text-muted-foreground mb-1 block">Video URL</label>
                             <input
