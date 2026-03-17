@@ -1723,4 +1723,70 @@ app.post("/make-server-39a35780/rooty/chat", async (c) => {
 });
 
 
+// ---------- Bootstrap: First Superadmin ----------
+// One-time endpoint to promote a user to superadmin before any superadmin exists.
+// SECURITY: Only active when BOOTSTRAP_SECRET env var is set.
+// Usage: POST /admin/bootstrap-superadmin
+//   Headers: Authorization: Bearer <BOOTSTRAP_SECRET>
+//   Body:    { "email": "user@example.com" }
+// After use: remove BOOTSTRAP_SECRET from Supabase Edge Function secrets.
+app.post("/make-server-39a35780/admin/bootstrap-superadmin", async (c) => {
+  const bootstrapSecret = Deno.env.get("BOOTSTRAP_SECRET");
+  if (!bootstrapSecret) {
+    // Endpoint is disabled when secret is not configured
+    return c.json({ error: "Not found" }, 404);
+  }
+
+  const authHeader = c.req.header("Authorization") || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  if (!token || token !== bootstrapSecret) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  try {
+    const { email } = await c.req.json();
+    if (!email) return c.json({ error: "email is required" }, 400);
+
+    // Look up the user by email via admin client
+    const adminClient = supabaseAdmin();
+    const { data: listData, error: listError } = await adminClient.auth.admin.listUsers();
+    if (listError) return c.json({ error: "Failed to list users" }, 500);
+
+    const user = listData.users.find((u: any) => u.email === email);
+    if (!user) return c.json({ error: `No user found with email: ${email}` }, 404);
+
+    const targetUserId = user.id;
+
+    // Read existing profile (may or may not exist)
+    const existing = await encryptedGet<any>(kv.get, `user:${targetUserId}:profile`);
+    const previousRole = existing?.role || "learner";
+
+    const updatedProfile = {
+      ...(existing || {}),
+      userId: targetUserId,
+      email,
+      role: "superadmin",
+      updatedAt: new Date().toISOString(),
+      roleChangedBy: "bootstrap",
+      roleChangedAt: new Date().toISOString(),
+      joinedAt: existing?.joinedAt || new Date().toISOString(),
+    };
+
+    await encryptedSet(kv.set, `user:${targetUserId}:profile`, updatedProfile);
+
+    console.log(`[BOOTSTRAP] Promoted ${email} (${targetUserId}) from ${previousRole} → superadmin`);
+
+    return c.json({
+      success: true,
+      message: `User ${email} promoted to superadmin. Remove BOOTSTRAP_SECRET from edge function secrets now.`,
+      userId: targetUserId,
+      previousRole,
+    });
+  } catch (e) {
+    console.error("Bootstrap error:", e);
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
+
 Deno.serve(app.fetch);
