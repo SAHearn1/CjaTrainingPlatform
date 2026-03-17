@@ -4,21 +4,34 @@ This file tracks incidents in this repository.
 
 ## Active Incidents
 
-### 2026-03-16 — Production signup "Failed to fetch" from rwfw-cjs-training.com (browser CORS / proxy block)
+### 2026-03-16 — Vercel CI/CD broken — VERCEL_ORG_ID / VERCEL_TOKEN secrets misconfigured
 
-**What happened:** Account creation from `https://rwfw-cjs-training.com` fails with a `TypeError: Failed to fetch` in the browser. Network inspection shows the POST to the edge function returns a 403 with `X-Proxy-Error: blocked-by-allowlist` from the Supabase CDN/API gateway. The block is origin-specific: the gateway rejects cross-origin POST requests where the `Origin` header is `https://rwfw-cjs-training.com` because that domain was not in the project-level allowed origins list. OPTIONS preflight requests do reach the function (confirmed in Supabase invocation logs: `→ OPTIONS /make-server-39a35780/signup 204 2ms`), confirming the function-level CORS code is correct. POST requests are blocked at the gateway before the function code runs.
+**What happened:** The `deploy-vercel` CI job fails with "Error: You do not have access to the specified account." The `VERCEL_ORG_ID` and/or `VERCEL_TOKEN` GitHub Actions secrets are stale or incorrect, preventing automatic frontend deploys after every commit to `main`.
 
-**Root cause:** The Supabase project's Auth URL Configuration had `Site URL` set to `http://localhost:3000` (the development default) and no entries in the Redirect URLs list. The Supabase API gateway derives its allowed-origins allowlist from these two settings. Because `https://rwfw-cjs-training.com` appeared in neither field, the gateway blocked all cross-origin POST requests from that domain.
+**Impact:** Frontend changes committed after the last successful deploy are not live at `rwfw-cjs-training.com`. The edge function can be deployed independently via `supabase functions deploy` (confirmed working).
 
-**Resolution applied (2026-03-16, this session):**
-- `Site URL` updated from `http://localhost:3000` → `https://rwfw-cjs-training.com` (Supabase Dashboard → Authentication → URL Configuration)
-- `https://rwfw-cjs-training.com` added to the Redirect URLs list (same page) — Total URLs: 1
+**Resolution needed:** Update `VERCEL_ORG_ID` and `VERCEL_TOKEN` in GitHub Actions secrets (Settings → Secrets and variables → Actions) with current values from the Vercel dashboard (Settings → General → Team ID / Tokens).
 
-**Pending verification:** Chrome extension disconnected before end-to-end browser test could be completed. Verify by visiting `https://rwfw-cjs-training.com`, attempting account creation with a test email, and confirming no "Failed to fetch" error. Also verify that the Vercel deploy issue (pre-existing: `VERCEL_ORG_ID` / `VERCEL_TOKEN` secret misconfiguration causing "Error: You do not have access to the specified account") does not prevent `rwfw-cjs-training.com` from serving the current frontend build.
+**Issue:** Pre-existing as of 2026-03-16
 
-**Note:** curl probes from this VM always return `403 blocked-by-allowlist` due to data center IP filtering — only browser-originating requests can validate the fix.
+---
 
-**Issue:** Discovered 2026-03-16 during CI fix validation session
+## Resolved Incidents
+
+### 2026-03-17 — Production signup "Failed to fetch" from rwfw-cjs-training.com — CORS allowlist missing production domain
+
+**What happened:** Account creation from `https://rwfw-cjs-training.com` failed with `TypeError: Failed to fetch`. The initial diagnosis (2026-03-16) incorrectly attributed the failure to the Supabase Auth URL Configuration (Site URL = localhost:3000). The actual root cause was identified on 2026-03-17 via git diff analysis.
+
+**Actual root cause:** `rwfw-cjs-training.com` and `www.rwfw-cjs-training.com` were absent from `ALLOWED_ORIGIN_EXACT` in the edge function's CORS middleware (`index.ts`). The Hono `cors()` middleware returns an empty `Access-Control-Allow-Origin` header for non-allowed origins. The browser's CORS preflight check failed, killing every POST request before it reached application code. The fix was written as an uncommitted working-tree change but was never committed or deployed — the Supabase-deployed function still matched the HEAD commit which lacked both domains.
+
+**Resolution (2026-03-17):**
+- Added `https://rwfw-cjs-training.com` and `https://www.rwfw-cjs-training.com` to `ALLOWED_ORIGIN_EXACT` in `index.ts`
+- Committed: `671612f` — "Fix CORS allowlist and add content review workflow"
+- Deployed: `supabase functions deploy make-server-39a35780 --project-ref rchiljcopergqtozylik --no-verify-jwt` ✅
+
+**Pending verification:** Do a live browser signup test from `https://rwfw-cjs-training.com` to confirm the "Failed to fetch" error is gone.
+
+**Issue:** Discovered 2026-03-16; root cause corrected and deployed 2026-03-17
 
 ## Resolved Incidents
 
