@@ -4,19 +4,27 @@ This file tracks incidents in this repository.
 
 ## Active Incidents
 
-### 2026-03-16 — Vercel CI/CD broken — VERCEL_ORG_ID / VERCEL_TOKEN secrets misconfigured
-
-**What happened:** The `deploy-vercel` CI job fails with "Error: You do not have access to the specified account." The `VERCEL_ORG_ID` and/or `VERCEL_TOKEN` GitHub Actions secrets are stale or incorrect, preventing automatic frontend deploys after every commit to `main`.
-
-**Impact:** Frontend changes committed after the last successful deploy are not live at `rwfw-cjs-training.com`. The edge function can be deployed independently via `supabase functions deploy` (confirmed working).
-
-**Resolution needed:** Update `VERCEL_ORG_ID` and `VERCEL_TOKEN` in GitHub Actions secrets (Settings → Secrets and variables → Actions) with current values from the Vercel dashboard (Settings → General → Team ID / Tokens).
-
-**Issue:** Pre-existing as of 2026-03-16
+_None — all incidents resolved as of 2026-03-17._
 
 ---
 
 ## Resolved Incidents
+
+### 2026-03-17 — Vercel CI/CD broken — redundant deploy-vercel job with expired VERCEL_TOKEN
+
+**What happened:** The `deploy-vercel` CI job failed with "Error: You do not have access to the specified account." on every push to `main`. The `VERCEL_TOKEN` secret had expired.
+
+**Actual root cause:** The CI workflow contained a redundant `deploy-vercel` job that re-deployed the frontend via `npx vercel --prod` after every CI run. This job was unnecessary because Vercel's native GitHub integration auto-deploys on every push to `main`. The redundant job depended on a `VERCEL_TOKEN` secret that expired, but since Vercel's GitHub integration was handling deployments correctly throughout, there was no actual deployment gap — only a failing CI job.
+
+**Resolution (2026-03-17):**
+- Removed the `deploy-vercel` CI job from `.github/workflows/ci.yml`
+- Vercel's GitHub integration (project `prj_07pcPbu0uEeln6WSV8I1hsCq4luV`, team `team_fKFspIjLsih5PkMNdnArXD8X`) remains the canonical deployment path
+- CI now runs: type-check → lint → test → build → deploy-edge-functions only
+- Commit: `d629822` (rebased onto remote)
+
+**Issue:** Pre-existing as of 2026-03-16; resolved 2026-03-17
+
+---
 
 ### 2026-03-17 — Production signup "Failed to fetch" from rwfw-cjs-training.com — CORS allowlist missing production domain
 
