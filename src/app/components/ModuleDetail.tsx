@@ -84,12 +84,12 @@ export function ModuleDetail() {
   // Auto-expand and scroll to section when URL hash is present (e.g. /modules/1#m1-root)
   useEffect(() => {
     const hash = window.location.hash.slice(1);
-    if (!hash || !preAssessmentDone) return;
+    if (!hash) return;
     setExpandedSections((prev) => { const next = new Set(prev); next.add(hash); return next; });
     setTimeout(() => {
       document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 150);
-  }, [preAssessmentDone]);
+  }, []);
 
   // ── Time tracking (#67) ──
   // Accumulate seconds spent on this module page and persist every 60 s.
